@@ -62,12 +62,111 @@ function renderHome(data) {
       .map(
         (p) => `
       <a class="card" href="projekt.html?p=${encodeURIComponent(p.slug)}">
-        <img class="card__img" src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy">
+        <img class="card__img" src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy" onerror="this.alt=''">
         <span class="card__label">${esc(p.title)} <span>— ${esc(p.type)}, ${esc(p.year)}</span></span>
       </a>`
       )
       .join("");
   }
+}
+
+/* Bildvorschau, die beim Überfahren einer Projektzeile dem Cursor folgt. */
+function initPeek(projects) {
+  const rows = document.querySelectorAll("[data-index] .row");
+  if (!rows.length || !window.matchMedia("(hover: hover)").matches) return;
+
+  const peek = document.createElement("img");
+  peek.className = "peek";
+  peek.alt = "";
+  // Fehlt das Bild noch, bleibt die Akzentflaeche stehen statt eines Bruch-Symbols.
+  peek.addEventListener("error", () => { peek.removeAttribute("src"); });
+  document.body.appendChild(peek);
+
+  let x = 0, y = 0, frame = null;
+  const move = () => {
+    frame = null;
+    peek.style.translate = x + "px " + y + "px";
+  };
+
+  rows.forEach((row, i) => {
+    const cover = projects[i] && projects[i].cover;
+    if (!cover) return;
+
+    row.addEventListener("mouseenter", () => {
+      peek.src = cover;
+      peek.classList.add("is-on");
+    });
+    row.addEventListener("mouseleave", () => peek.classList.remove("is-on"));
+    row.addEventListener("mousemove", (e) => {
+      x = e.clientX;
+      y = e.clientY;
+      if (!frame) frame = requestAnimationFrame(move);
+    });
+  });
+}
+
+/* Laufband unter der Navigation: Leistungen und aktuelle Berliner Uhrzeit. */
+function initTicker(site) {
+  const host = document.querySelector("[data-ticker]");
+  if (!host) return;
+
+  const berlinTime = () =>
+    new Intl.DateTimeFormat("de-DE", {
+      timeZone: "Europe/Berlin",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(new Date());
+
+  const parts = [
+    site.role,
+    site.location,
+    "Verfügbar für Aufträge",
+    "Kontakt " + site.email
+  ];
+
+  const track = document.createElement("div");
+  track.className = "ticker__track";
+  host.appendChild(track);
+
+  const paint = () => {
+    const items = parts.concat(site.location + " " + berlinTime() + " Uhr");
+    // Zweimal, damit beim Umlauf keine Lücke entsteht.
+    track.innerHTML = items.concat(items).map((t) => `<span>${esc(t)}</span>`).join("");
+  };
+
+  paint();
+  setInterval(paint, 30000);
+}
+
+/* Zerlegt die Titelzeile in einzelne Buchstaben, damit jeder fuer sich
+   in Gewicht und Groesse atmen kann. <br> bleibt als Zeilenumbruch erhalten. */
+function initTitle() {
+  const el = document.querySelector("[data-split]");
+  if (!el) return;
+
+  const nodes = Array.from(el.childNodes);
+  el.textContent = "";
+  let i = 0;
+
+  nodes.forEach((node) => {
+    if (node.nodeName === "BR") {
+      el.appendChild(document.createElement("br"));
+      return;
+    }
+    for (const ch of node.textContent) {
+      if (ch.trim() === "") {
+        el.appendChild(document.createTextNode(" "));
+        continue;
+      }
+      const span = document.createElement("span");
+      span.className = "ltr";
+      span.textContent = ch;
+      // Versatz pro Buchstabe, damit eine Welle statt eines Pulses entsteht.
+      span.style.animationDelay = (i * 0.09).toFixed(2) + "s";
+      el.appendChild(span);
+      i++;
+    }
+  });
 }
 
 function renderProject(data) {
@@ -138,7 +237,10 @@ function renderInfo(data) {
 loadData()
   .then((data) => {
     renderChrome(data.site);
+    initTitle();
+    initTicker(data.site);
     renderHome(data);
+    initPeek(data.projects);
     renderProject(data);
     renderInfo(data);
   })

@@ -4,6 +4,7 @@
   --bg: #ffffff;
   --fg: #000000;
   --muted: #8a8a8a;
+  --accent: #ff3b00;
   --rule: #000000;
   --pad: 16px;
   --nav-h: 56px;
@@ -48,13 +49,14 @@ img, video, iframe { display: block; max-width: 100%; }
 }
 
 .nav a {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 17px;
 }
 
 .nav__left { display: flex; gap: 20px; }
 
-.nav a:hover { opacity: 0.45; }
+.nav a { transition: color 120ms linear; }
+.nav a:hover { color: var(--accent); }
 
 .nav__mark {
   position: absolute;
@@ -66,11 +68,13 @@ img, video, iframe { display: block; max-width: 100%; }
 }
 
 @media (max-width: 640px) {
-  .nav a:hover { opacity: 0.45; }
+  .nav a { transition: color 120ms linear; }
+.nav a:hover { color: var(--accent); }
 
 .nav__mark { position: static; transform: none; }
   .nav__left { gap: 14px; }
-  .nav a, .nav a:hover { opacity: 0.45; }
+  .nav a, .nav a { transition: color 120ms linear; }
+.nav a:hover { color: var(--accent); }
 
 .nav__mark { font-size: 14px; }
 }
@@ -81,7 +85,7 @@ img, video, iframe { display: block; max-width: 100%; }
 
 .hero h1 {
   margin: 0;
-  font-weight: 800;
+  font-weight: 300;
   font-size: clamp(44px, 11vw, 168px);
   line-height: 0.92;
   letter-spacing: -0.045em;
@@ -91,7 +95,7 @@ img, video, iframe { display: block; max-width: 100%; }
 .hero p {
   max-width: 46ch;
   margin: 24px 0 0;
-  font-weight: 700;
+  font-weight: 400;
   font-size: clamp(15px, 1.5vw, 19px);
   line-height: 1.25;
 }
@@ -110,7 +114,7 @@ img, video, iframe { display: block; max-width: 100%; }
   transition: background 120ms linear;
 }
 
-.row:hover { background: var(--fg); color: var(--bg); }
+.row:hover { background: var(--accent); color: var(--bg); }
 
 .row__title {
   font-weight: 800;
@@ -121,7 +125,7 @@ img, video, iframe { display: block; max-width: 100%; }
 }
 
 .row__meta {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -159,7 +163,7 @@ img, video, iframe { display: block; max-width: 100%; }
   letter-spacing: 0.02em;
 }
 
-.card__label span { color: var(--muted); }
+.card__label span { color: var(--muted); font-weight: 400; }
 
 /* ---------- Projektseite ---------- */
 
@@ -177,7 +181,7 @@ img, video, iframe { display: block; max-width: 100%; }
 .project__lede {
   max-width: 60ch;
   margin: 24px 0 0;
-  font-weight: 700;
+  font-weight: 400;
   font-size: clamp(15px, 1.5vw, 19px);
 }
 
@@ -191,14 +195,14 @@ img, video, iframe { display: block; max-width: 100%; }
 }
 
 .specs dt {
-  font-weight: 700;
+  font-weight: 400;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
 
-.specs dd { margin: 5px 0 0; font-weight: 700; font-size: 15px; }
+.specs dd { margin: 5px 0 0; font-weight: 500; font-size: 15px; }
 
 .media > * { margin-bottom: 2px; }
 
@@ -218,16 +222,16 @@ img, video, iframe { display: block; max-width: 100%; }
   text-transform: uppercase;
 }
 
-.pager a { transition: opacity 120ms linear; }
-.pager a:hover { opacity: 0.45; }
+.pager a { transition: color 120ms linear; }
+.pager a:hover { color: var(--accent); }
 
 /* ---------- Info ---------- */
 
 .info { padding: 40px var(--pad) 0; max-width: 62ch; }
 .info h1 { font-weight: 800; font-size: clamp(36px, 7vw, 92px); line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase; margin: 0 0 24px; }
-.info p { font-weight: 700; font-size: clamp(15px, 1.6vw, 20px); margin: 0 0 18px; }
-.info a { transition: opacity 120ms linear; }
-.info a:hover { opacity: 0.45; }
+.info p { font-weight: 400; font-size: clamp(15px, 1.6vw, 20px); margin: 0 0 18px; }
+.info a { transition: color 120ms linear; }
+.info a:hover { color: var(--accent); }
 
 /* ---------- Footer ---------- */
 
@@ -244,8 +248,85 @@ img, video, iframe { display: block; max-width: 100%; }
   letter-spacing: 0.02em;
 }
 
-.foot a { transition: opacity 120ms linear; }
-.foot a:hover { opacity: 0.45; }
+.foot a { transition: color 120ms linear; }
+.foot a:hover { color: var(--accent); }
 .foot .foot__spacer { margin-left: auto; }
 
 .empty { padding: 40px var(--pad); font-weight: 700; }
+
+/* ---------- Spielerei 1: Bildvorschau am Cursor ---------- */
+
+.peek {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  width: 220px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: var(--accent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.92);
+  transition: opacity 140ms linear, transform 140ms ease-out;
+  pointer-events: none;
+}
+
+.peek.is-on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* Nur wo es einen echten Zeiger gibt — auf Touch waere es sinnlos. */
+@media (hover: none), (pointer: coarse) {
+  .peek { display: none; }
+}
+
+/* ---------- Spielerei 2: Laufband ---------- */
+
+.ticker {
+  overflow: hidden;
+  padding: 10px 0;
+  background: var(--accent);
+  color: var(--bg);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+
+.ticker__track {
+  display: inline-block;
+  padding-left: 100%;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  animation: ticker 26s linear infinite;
+}
+
+.ticker:hover .ticker__track { animation-play-state: paused; }
+
+.ticker__track span { margin: 0 28px; }
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track { animation: none; padding-left: var(--pad); }
+  .peek { transition: none; }
+}
+
+/* ---------- Titel: Buchstaben atmen in Gewicht und Groesse ---------- */
+
+.ltr {
+  display: inline-block;
+  transform-origin: 50% 88%;
+  animation: breathe 4.5s ease-in-out infinite;
+  will-change: transform, font-weight;
+}
+
+@keyframes breathe {
+  0%, 100% { font-weight: 200; transform: scale(0.94); }
+  50%      { font-weight: 800; transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ltr { animation: none; font-weight: 700; transform: none; }
+}
