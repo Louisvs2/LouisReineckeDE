@@ -1,0 +1,54 @@
+{
+  "site": {
+    "name": "LOUIS REINECKE",
+    "role": "Video & Fotografie",
+    "location": "Hamburg",
+    "email": "culttwenty@gmx.de",
+    "intro": "Louis Reinecke arbeitet als Filmemacher und Fotograf zwischen dokumentarischer Beobachtung und inszenierter Bildsprache. Schwerpunkt: Portrait, Musik und Marken.",
+    "links": [
+      { "label": "Instagram", "url": "https://www.instagram.com/louisreinecke/" },
+      { "label": "TikTok", "url": "https://www.tiktok.com/@louis.reinecke" }
+    ]
+  },
+  "projects": [
+    {
+      "slug": "nordsee",
+      "title": "Nordsee",
+      "client": "Eigenarbeit",
+      "year": "2025",
+      "type": "Fotografie",
+      "tags": ["Analog", "Landschaft", "Serie"],
+      "excerpt": "Eine Woche an der Küste, fotografiert auf 35mm.",
+      "text": "Kurzer Fließtext zum Projekt. Zwei bis vier Sätze reichen — was war der Auftrag, was war die Idee, was ist entstanden.",
+      "cover": "media/nordsee/01.jpg",
+      "video": "",
+      "images": ["media/nordsee/01.jpg", "media/nordsee/02.jpg", "media/nordsee/03.jpg"]
+    },
+    {
+      "slug": "atelier",
+      "title": "Atelier",
+      "client": "Kundenname",
+      "year": "2025",
+      "type": "Video",
+      "tags": ["Portrait", "Doku"],
+      "excerpt": "Portraitfilm über eine Werkstatt und die Menschen darin.",
+      "text": "Kurzer Fließtext zum Projekt.",
+      "cover": "media/atelier/01.jpg",
+      "video": "https://www.youtube.com/embed/VIDEO_ID",
+      "images": ["media/atelier/01.jpg", "media/atelier/02.jpg"]
+    },
+    {
+      "slug": "lauf",
+      "title": "Lauf",
+      "client": "Kundenname",
+      "year": "2024",
+      "type": "Video",
+      "tags": ["Commercial", "Sport"],
+      "excerpt": "Kampagnenfilm, gedreht an einem Tag.",
+      "text": "Kurzer Fließtext zum Projekt.",
+      "cover": "media/lauf/01.jpg",
+      "video": "",
+      "images": ["media/lauf/01.jpg"]
+    }
+  ]
+}
