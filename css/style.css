@@ -50,11 +50,11 @@ img, video, iframe { display: block; max-width: 100%; }
 .nav a {
   font-weight: 700;
   font-size: 17px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .nav__left { display: flex; gap: 20px; }
+
+.nav a:hover { opacity: 0.45; }
 
 .nav__mark {
   position: absolute;
@@ -63,13 +63,16 @@ img, video, iframe { display: block; max-width: 100%; }
   font-weight: 800;
   font-size: 19px;
   letter-spacing: -0.03em;
-  text-decoration: none;
 }
 
 @media (max-width: 640px) {
-  .nav__mark { position: static; transform: none; }
+  .nav a:hover { opacity: 0.45; }
+
+.nav__mark { position: static; transform: none; }
   .nav__left { gap: 14px; }
-  .nav a, .nav__mark { font-size: 14px; }
+  .nav a, .nav a:hover { opacity: 0.45; }
+
+.nav__mark { font-size: 14px; }
 }
 
 /* ---------- Hero ---------- */
@@ -215,14 +218,16 @@ img, video, iframe { display: block; max-width: 100%; }
   text-transform: uppercase;
 }
 
-.pager a { text-decoration: underline; text-underline-offset: 3px; }
+.pager a { transition: opacity 120ms linear; }
+.pager a:hover { opacity: 0.45; }
 
 /* ---------- Info ---------- */
 
 .info { padding: 40px var(--pad) 0; max-width: 62ch; }
 .info h1 { font-weight: 800; font-size: clamp(36px, 7vw, 92px); line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase; margin: 0 0 24px; }
 .info p { font-weight: 700; font-size: clamp(15px, 1.6vw, 20px); margin: 0 0 18px; }
-.info a { text-decoration: underline; text-underline-offset: 3px; }
+.info a { transition: opacity 120ms linear; }
+.info a:hover { opacity: 0.45; }
 
 /* ---------- Footer ---------- */
 
@@ -239,7 +244,8 @@ img, video, iframe { display: block; max-width: 100%; }
   letter-spacing: 0.02em;
 }
 
-.foot a { text-decoration: underline; text-underline-offset: 3px; }
+.foot a { transition: opacity 120ms linear; }
+.foot a:hover { opacity: 0.45; }
 .foot .foot__spacer { margin-left: auto; }
 
 .empty { padding: 40px var(--pad); font-weight: 700; }
