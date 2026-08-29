@@ -17,7 +17,11 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: "Helvetica Neue", Helvetica, Arial, "Inter", system-ui, sans-serif;
+  /* SF Pro: auf Apple-Geraeten liefert -apple-system genau diese Schrift aus.
+     Apple lizenziert SF Pro nicht als Webfont, deshalb wird sie nicht geladen,
+     sondern vom System bezogen; ausserhalb greift der Fallback. */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.25;
   letter-spacing: -0.01em;
