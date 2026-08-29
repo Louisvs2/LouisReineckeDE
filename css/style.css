@@ -344,16 +344,17 @@ img, video, iframe { display: block; max-width: 100%; }
   bottom: 18px;
   z-index: 5;
   color: #ffffff;
-  font-size: clamp(26px, 5vw, 76px);
-  line-height: 0.88;
-  letter-spacing: -0.045em;
+  font-size: clamp(17px, 2.1vw, 30px);
+  line-height: 1;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
   text-align: right;
+  white-space: nowrap;
   font-weight: 300;
   /* Liegt ueber den Bildern, darf aber keine Klicks abfangen. */
   pointer-events: none;
 }
 
 @media (max-width: 700px) {
-  .mark { bottom: 12px; font-size: clamp(20px, 8vw, 34px); }
+  .mark { bottom: 12px; font-size: 15px; }
 }
