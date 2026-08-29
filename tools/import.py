@@ -24,6 +24,7 @@ Die Originale werden nicht veraendert.
 
 import json
 import os
+import unicodedata
 import re
 import shutil
 import subprocess
@@ -39,7 +40,9 @@ UMLAUTE = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "é": "e", "è": "e",
 
 
 def slugify(text):
-    text = text.lower().strip()
+    # macOS speichert Umlaute zerlegt (u + Trema). Ohne diese Zusammenfuehrung
+    # wuerde aus DUENEN ein "du-nen" statt "duenen".
+    text = unicodedata.normalize("NFC", text).lower().strip()
     for k, v in UMLAUTE.items():
         text = text.replace(k, v)
     text = re.sub(r"[^a-z0-9]+", "-", text)
