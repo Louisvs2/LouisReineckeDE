@@ -62,7 +62,7 @@ function renderHome(data) {
       .map(
         (p) => `
       <a class="card" href="projekt.html?p=${encodeURIComponent(p.slug)}">
-        <img class="card__img" src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy" onerror="this.alt=''">
+        <img class="card__img" src="${esc(p.cover)}" alt="${esc(p.title)}" loading="lazy" onerror="this.dataset.broken=1">
         <span class="card__label">${esc(p.title)} <span>— ${esc(p.type)}, ${esc(p.year)}</span></span>
       </a>`
       )
@@ -70,7 +70,9 @@ function renderHome(data) {
   }
 }
 
-/* Bildvorschau, die beim Überfahren einer Projektzeile dem Cursor folgt. */
+/* Bildvorschau, die beim Überfahren einer Projektzeile dem Cursor folgt.
+   Sie erscheint nur, wenn das Coverbild wirklich geladen werden konnte —
+   sonst haette man eine leere Flaeche im Bild. */
 function initPeek(projects) {
   const rows = document.querySelectorAll("[data-index] .row");
   if (!rows.length || !window.matchMedia("(hover: hover)").matches) return;
@@ -78,64 +80,45 @@ function initPeek(projects) {
   const peek = document.createElement("img");
   peek.className = "peek";
   peek.alt = "";
-  // Fehlt das Bild noch, bleibt die Akzentflaeche stehen statt eines Bruch-Symbols.
-  peek.addEventListener("error", () => { peek.removeAttribute("src"); });
   document.body.appendChild(peek);
 
   let x = 0, y = 0, frame = null;
-  const move = () => {
+  const place = () => {
     frame = null;
-    peek.style.translate = x + "px " + y + "px";
+    peek.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+  };
+
+  const hide = () => {
+    peek.classList.remove("is-on");
+    if (frame) { cancelAnimationFrame(frame); frame = null; }
   };
 
   rows.forEach((row, i) => {
     const cover = projects[i] && projects[i].cover;
     if (!cover) return;
 
-    row.addEventListener("mouseenter", () => {
-      peek.src = cover;
-      peek.classList.add("is-on");
-    });
-    row.addEventListener("mouseleave", () => peek.classList.remove("is-on"));
+    // Vorab laden, damit beim Hover nichts blinkt und fehlende Bilder auffallen.
+    const probe = new Image();
+    let ready = false;
+    probe.onload = () => { ready = true; };
+    probe.src = cover;
+
     row.addEventListener("mousemove", (e) => {
       x = e.clientX;
       y = e.clientY;
-      if (!frame) frame = requestAnimationFrame(move);
+      if (!frame) frame = requestAnimationFrame(place);
+      if (ready && !peek.classList.contains("is-on")) {
+        peek.src = cover;
+        peek.classList.add("is-on");
+      }
     });
+    row.addEventListener("mouseleave", hide);
   });
-}
 
-/* Laufband unter der Navigation: Leistungen und aktuelle Berliner Uhrzeit. */
-function initTicker(site) {
-  const host = document.querySelector("[data-ticker]");
-  if (!host) return;
-
-  const berlinTime = () =>
-    new Intl.DateTimeFormat("de-DE", {
-      timeZone: "Europe/Berlin",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(new Date());
-
-  const parts = [
-    site.role,
-    site.location,
-    "Verfügbar für Aufträge",
-    "Kontakt " + site.email
-  ];
-
-  const track = document.createElement("div");
-  track.className = "ticker__track";
-  host.appendChild(track);
-
-  const paint = () => {
-    const items = parts.concat(site.location + " " + berlinTime() + " Uhr");
-    // Zweimal, damit beim Umlauf keine Lücke entsteht.
-    track.innerHTML = items.concat(items).map((t) => `<span>${esc(t)}</span>`).join("");
-  };
-
-  paint();
-  setInterval(paint, 30000);
+  // Sicherheitsnetz: verlaesst der Zeiger das Fenster oder wird gescrollt,
+  // darf die Vorschau nicht stehen bleiben.
+  window.addEventListener("scroll", hide, { passive: true });
+  document.addEventListener("mouseleave", hide);
 }
 
 /* Zerlegt die Titelzeile in einzelne Buchstaben, damit jeder fuer sich
@@ -238,7 +221,6 @@ loadData()
   .then((data) => {
     renderChrome(data.site);
     initTitle();
-    initTicker(data.site);
     renderHome(data);
     initPeek(data.projects);
     renderProject(data);

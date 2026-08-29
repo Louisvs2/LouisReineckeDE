@@ -146,7 +146,10 @@ img, video, iframe { display: block; max-width: 100%; }
   padding: 2px;
 }
 
-.card { position: relative; display: block; }
+.card { position: relative; display: block; background: #ededed; }
+
+/* Fehlt ein Bild noch, bleibt die graue Flaeche der Karte stehen. */
+.card__img:not([src]), .card__img[data-broken] { visibility: hidden; }
 
 .card__img {
   width: 100%;
@@ -264,53 +267,16 @@ img, video, iframe { display: block; max-width: 100%; }
   width: 220px;
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  background: var(--accent);
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0.92);
-  transition: opacity 140ms linear, transform 140ms ease-out;
+  transition: opacity 140ms linear;
   pointer-events: none;
 }
 
-.peek.is-on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.peek.is-on { opacity: 1; }
 
 /* Nur wo es einen echten Zeiger gibt — auf Touch waere es sinnlos. */
 @media (hover: none), (pointer: coarse) {
   .peek { display: none; }
-}
-
-/* ---------- Spielerei 2: Laufband ---------- */
-
-.ticker {
-  overflow: hidden;
-  padding: 10px 0;
-  background: var(--accent);
-  color: var(--bg);
-  border-bottom: 1px solid var(--rule);
-  white-space: nowrap;
-}
-
-.ticker__track {
-  display: inline-block;
-  padding-left: 100%;
-  font-weight: 800;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  animation: ticker 26s linear infinite;
-}
-
-.ticker:hover .ticker__track { animation-play-state: paused; }
-
-.ticker__track span { margin: 0 28px; }
-
-@keyframes ticker {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticker__track { animation: none; padding-left: var(--pad); }
-  .peek { transition: none; }
 }
 
 /* ---------- Titel: Buchstaben atmen in Gewicht und Groesse ---------- */
