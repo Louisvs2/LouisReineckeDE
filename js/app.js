@@ -70,6 +70,47 @@ function renderHome(data) {
   }
 }
 
+/* Rotierender Ring neben dem Titel. Die Form entsteht aus einer Kreisbahn,
+   deren Punkte jeweils eigene Abweichungen bekommen — dadurch ist der Ring
+   nie exakt rund und sitzt bei jedem Aufruf anders. Aussen- und Innenkante
+   haben getrennte Abweichungen, wodurch die Strichstaerke im Umlauf
+   an- und abschwillt wie bei einem gemalten Strich. */
+const RING = { umlauf: 4, unruhe: 0.05, punkte: 9, aussen: 80, innen: 68 };
+
+function ringPfad(radius, unruhe, punkte) {
+  const pts = [];
+  for (let i = 0; i < punkte; i++) {
+    const a = (i / punkte) * Math.PI * 2;
+    const r = radius * (1 + (Math.random() - 0.5) * unruhe * 2);
+    pts.push([100 + Math.cos(a) * r, 100 + Math.sin(a) * r]);
+  }
+  // Catmull-Rom in kubische Beziers, geschlossen.
+  const n = pts.length;
+  const at = (i) => pts[(i % n + n) % n];
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += `C${c1[0].toFixed(2)},${c1[1].toFixed(2)} ${c2[0].toFixed(2)},${c2[1].toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+  }
+  return d + "Z";
+}
+
+function initRing() {
+  const host = document.querySelector("[data-ring]");
+  if (!host) return;
+
+  const aussen = ringPfad(RING.aussen, RING.unruhe, RING.punkte);
+  const innen = ringPfad(RING.innen, RING.unruhe * 1.3, RING.punkte);
+
+  host.innerHTML =
+    `<svg viewBox="0 0 200 200" aria-hidden="true">` +
+    `<g class="ring__spin" style="--umlauf:${RING.umlauf}s">` +
+    `<path d="${aussen} ${innen}" fill="currentColor" fill-rule="evenodd"></path>` +
+    `</g></svg>`;
+}
+
 /* Bildvorschau, die beim Überfahren einer Projektzeile dem Cursor folgt.
    Sie erscheint nur, wenn das Coverbild wirklich geladen werden konnte —
    sonst haette man eine leere Flaeche im Bild. */
@@ -246,6 +287,7 @@ function renderInfo(data) {
 loadData()
   .then((data) => {
     renderChrome(data.site);
+    initRing();
     renderHome(data);
     renderProject(data);
     renderInfo(data);

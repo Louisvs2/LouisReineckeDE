@@ -81,7 +81,40 @@ img, video, iframe { display: block; max-width: 100%; }
 
 /* ---------- Hero ---------- */
 
-.hero { padding: 40px var(--pad) 28px; }
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 32px;
+  padding: 40px var(--pad) 28px;
+}
+
+.hero__ring {
+  width: clamp(150px, 22vw, 330px);
+  aspect-ratio: 1;
+  color: var(--accent);
+}
+
+.hero__ring svg { width: 100%; height: auto; }
+
+/* Gleichmaessig und linear, damit die Drehung im Gegensatz zum stufigen
+   Titel butterweich in der vollen Bildrate des Bildschirms laeuft. */
+.ring__spin {
+  transform-origin: 50% 50%;
+  animation: ring-spin var(--umlauf, 4s) linear infinite;
+  will-change: transform;
+}
+
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ring__spin { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; gap: 20px; }
+  .hero__ring { order: -1; width: clamp(120px, 34vw, 200px); }
+}
 
 .hero h1 {
   margin: 0;
