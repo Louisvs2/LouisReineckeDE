@@ -284,13 +284,19 @@ img, video, iframe { display: block; max-width: 100%; }
 .ltr {
   display: inline-block;
   transform-origin: 50% 88%;
-  animation: breathe 4.5s ease-in-out infinite;
+  /* Dauer, Verzoegerung und Stufung setzt das Skript je Buchstabe. */
+  animation: breathe 4s steps(5, end) infinite;
   will-change: transform, font-weight;
+
+  --w-min: 200;
+  --w-max: 800;
+  --s-min: 0.94;
+  --s-max: 1.06;
 }
 
 @keyframes breathe {
-  0%, 100% { font-weight: 200; transform: scale(0.94); }
-  50%      { font-weight: 800; transform: scale(1.06); }
+  0%, 100% { font-weight: var(--w-min); transform: scale(var(--s-min)); }
+  50%      { font-weight: var(--w-max); transform: scale(var(--s-max)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

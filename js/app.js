@@ -121,6 +121,29 @@ function initPeek(projects) {
   document.addEventListener("mouseleave", hide);
 }
 
+/* Jeder Buchstabe bekommt eigene Werte, damit die Bewegung nicht als
+   gleichmaessige Welle lesbar wird. Die Stufenzahl gibt den Ruckel-Look:
+   wenige Stufen wirken wie eine niedrige Bildrate. */
+function styleLetter(span, i) {
+  const rnd = (min, max) => min + Math.random() * (max - min);
+
+  const steps = Math.round(rnd(3, 8));
+  const dur = rnd(1.8, 5.4);
+
+  // Negativer Versatz: die Buchstaben stehen von Anfang an verteilt,
+  // statt gemeinsam loszulaufen.
+  const delay = -rnd(0, dur) - i * 0.04;
+
+  span.style.setProperty("--w-min", Math.round(rnd(100, 300) / 100) * 100);
+  span.style.setProperty("--w-max", Math.round(rnd(600, 900) / 100) * 100);
+  span.style.setProperty("--s-min", rnd(0.86, 0.97).toFixed(3));
+  span.style.setProperty("--s-max", rnd(1.03, 1.14).toFixed(3));
+
+  span.style.animationDuration = dur.toFixed(2) + "s";
+  span.style.animationDelay = delay.toFixed(2) + "s";
+  span.style.animationTimingFunction = `steps(${steps}, end)`;
+}
+
 /* Zerlegt die Titelzeile in einzelne Buchstaben, damit jeder fuer sich
    in Gewicht und Groesse atmen kann. <br> bleibt als Zeilenumbruch erhalten. */
 function initTitle() {
@@ -144,8 +167,7 @@ function initTitle() {
       const span = document.createElement("span");
       span.className = "ltr";
       span.textContent = ch;
-      // Versatz pro Buchstabe, damit eine Welle statt eines Pulses entsteht.
-      span.style.animationDelay = (i * 0.09).toFixed(2) + "s";
+      styleLetter(span, i);
       el.appendChild(span);
       i++;
     }
