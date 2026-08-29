@@ -335,3 +335,25 @@ img, video, iframe { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .ltr { animation: none; font-weight: 700; transform: none; }
 }
+
+/* ---------- Feste Signatur auf Projektseiten ---------- */
+
+.mark {
+  position: fixed;
+  right: var(--pad);
+  bottom: 18px;
+  z-index: 5;
+  color: #ffffff;
+  font-size: clamp(26px, 5vw, 76px);
+  line-height: 0.88;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  text-align: right;
+  font-weight: 300;
+  /* Liegt ueber den Bildern, darf aber keine Klicks abfangen. */
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .mark { bottom: 12px; font-size: clamp(20px, 8vw, 34px); }
+}
