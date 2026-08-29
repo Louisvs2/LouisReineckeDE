@@ -64,3 +64,31 @@ ein, sodass `/info` statt `/info.html` funktioniert.
 (meist `/`). Es ist kein PHP und keine Datenbank nötig. Bei Strato gibt es kein
 `cleanUrls` — die internen Links zeigen deshalb auf die vollen `.html`-Pfade
 und funktionieren dort unverändert.
+
+## Projekte aus Ordnern einlesen
+
+`tools/import.py` baut die Inhalte aus einem Ordner mit Projektordnern.
+Erwartete Struktur:
+
+```
+Projekte/
+  Nordsee, 2025, Kurtains, Berlin/
+    DSC_0421.jpg
+    DSC_0433.jpg
+    youtube.txt          (optional, enthaelt nur den Link)
+```
+
+Der Ordnername wird an Kommas zerlegt: Projektname, Jahr, Kuenstler, Ort.
+Aufruf im Projektverzeichnis:
+
+```
+python3 tools/import.py ~/Desktop/Projekte
+```
+
+Das Skript verkleinert jedes Bild auf 2200 Pixel laengste Kante, speichert es
+als `media/<slug>/01.jpg`, `02.jpg` … und schreibt `data/projects.json` neu.
+Die Originale bleiben unangetastet. Beschreibungstexte bleiben leer und werden
+danach von Hand in der JSON ergaenzt.
+
+Verkleinert wird mit `sips`, das auf jedem Mac vorhanden ist. Fehlt es, werden
+die Bilder unveraendert kopiert — dann sollte man sie vorher selbst verkleinern.

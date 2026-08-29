@@ -179,6 +179,10 @@ function splitTitle(el) {
   });
 }
 
+// Ein Feld nur zeigen, wenn es gefuellt ist.
+const spec = (label, value) =>
+  value ? `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>` : "";
+
 function renderProject(data) {
   const { projects } = data;
   const slug = qs("p");
@@ -210,13 +214,8 @@ function renderProject(data) {
   root.innerHTML = `
     <header class="project">
       <h1 data-split>${esc(p.title)}</h1>
-      <p class="project__lede">${esc(p.excerpt)}</p>
-      <dl class="specs">
-        <div><dt>Kunde</dt><dd>${esc(p.client)}</dd></div>
-        <div><dt>Jahr</dt><dd>${esc(p.year)}</dd></div>
-        <div><dt>Leistung</dt><dd>${esc(p.type)}</dd></div>
-        <div><dt>Stichworte</dt><dd>${esc(tags)}</dd></div>
-      </dl>
+      ${p.excerpt ? `<p class="project__lede">${esc(p.excerpt)}</p>` : ""}
+      <dl class="specs">${spec("Kunde", p.client)}${spec("Jahr", p.year)}${spec("Leistung", p.type)}${spec("Stichworte", tags)}</dl>
       ${p.text ? `<p class="project__lede" style="margin-bottom:40px">${esc(p.text)}</p>` : ""}
     </header>
     <div class="media">${embed}${images}</div>
