@@ -47,18 +47,35 @@ def slugify(text):
 
 
 def ordner_zerlegen(name):
-    """'Nordsee, 2025, Kurtains, Berlin' -> die vier Felder."""
-    teile = [t.strip() for t in name.split(",")]
-    teile += [""] * (4 - len(teile))
-    titel, jahr, kuenstler, ort = teile[:4]
+    """Zerlegt 'BUSY, 2026, JIVI, DUISBURG' in seine Felder.
 
-    # Falls kein Komma benutzt wurde, ist alles der Titel.
-    if not jahr and re.search(r"\b(19|20)\d{2}\b", titel):
-        m = re.search(r"\b((19|20)\d{2})\b", titel)
-        jahr = m.group(1)
-        titel = titel.replace(jahr, "").strip(" -,")
+    Die Reihenfolge der Felder schwankt in der Praxis, deshalb wird das
+    Jahr an seiner vierstelligen Form erkannt statt an seiner Position.
+    Von den uebrigen Feldern ist das erste der Titel, das letzte der Ort
+    und ein verbleibendes mittleres der Kuenstler.
+    """
+    teile = [t.strip() for t in name.split(",") if t.strip()]
 
-    return titel or name, jahr, kuenstler, ort
+    jahr = ""
+    rest = []
+    for t in teile:
+        if not jahr and re.fullmatch(r"(19|20)\d{2}", t):
+            jahr = t
+        else:
+            rest.append(t)
+
+    # Jahr ohne eigenes Feld, etwa 'Lauf 2023'
+    if not jahr and rest:
+        m = re.search(r"\b((19|20)\d{2})\b", rest[0])
+        if m:
+            jahr = m.group(1)
+            rest[0] = rest[0].replace(jahr, "").strip(" -,")
+
+    titel = rest[0] if rest else name
+    ort = rest[-1] if len(rest) >= 2 else ""
+    kuenstler = rest[1] if len(rest) >= 3 else ""
+
+    return titel, jahr, kuenstler, ort
 
 
 def youtube_embed(url):
@@ -121,7 +138,10 @@ def main():
         site = {"name": "LOUIS REINECKE", "role": "Video & Fotografie",
                 "location": "Berlin", "email": "", "intro": "", "links": []}
 
-    ordner = sorted([p for p in quelle.iterdir() if p.is_dir() and not p.name.startswith(".")])
+    ordner = sorted([p for p in quelle.iterdir()
+                     if p.is_dir()
+                     and not p.name.startswith(".")
+                     and p.name != "__MACOSX"])
     if not ordner:
         print(f"Keine Projektordner in {quelle} gefunden.")
         sys.exit(1)
@@ -133,7 +153,7 @@ def main():
     for p in ordner:
         titel, jahr, kuenstler, ort = ordner_zerlegen(p.name)
         slug = slugify(titel)
-        print(f"» {titel}  ({jahr or 'ohne Jahr'})")
+        print(f"» {titel}  |  {kuenstler or '—'}  |  {jahr or 'ohne Jahr'}  |  {ort or '—'}")
 
         # YouTube-Link aus der Textdatei lesen, falls vorhanden
         video = ""
@@ -147,6 +167,11 @@ def main():
         bilder = sorted([f for f in p.iterdir()
                          if f.is_file() and f.suffix.lower() in BILD_ENDUNGEN
                          and not f.name.startswith(".")])
+
+        # Ordner ohne Bilder sind keine Projekte, etwa Systemordner.
+        if not bilder and not video:
+            print("    uebersprungen: keine Bilder gefunden")
+            continue
 
         zielordner = media / slug
         zielordner.mkdir(parents=True, exist_ok=True)
