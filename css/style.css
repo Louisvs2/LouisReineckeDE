@@ -112,8 +112,9 @@ img, video, iframe { display: block; max-width: 100%; }
 }
 
 @media (max-width: 760px) {
-  .hero { grid-template-columns: 1fr; gap: 20px; }
-  .hero__ring { order: -1; width: clamp(120px, 34vw, 200px); }
+  /* Bleibt neben dem Titel stehen, nur deutlich kleiner. */
+  .hero { gap: 14px; align-items: start; padding-top: 28px; }
+  .hero__ring { width: clamp(64px, 21vw, 120px); margin-top: 6px; }
 }
 
 .hero h1 {
