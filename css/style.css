@@ -174,7 +174,7 @@ img, video, iframe { display: block; max-width: 100%; }
 
 .project h1 {
   margin: 0;
-  font-weight: 800;
+  font-weight: 300;
   font-size: clamp(40px, 9vw, 132px);
   line-height: 0.92;
   letter-spacing: -0.045em;
@@ -231,7 +231,7 @@ img, video, iframe { display: block; max-width: 100%; }
 /* ---------- Info ---------- */
 
 .info { padding: 40px var(--pad) 0; max-width: 62ch; }
-.info h1 { font-weight: 800; font-size: clamp(36px, 7vw, 92px); line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase; margin: 0 0 24px; }
+.info h1 { font-weight: 300; font-size: clamp(36px, 7vw, 92px); line-height: 0.95; letter-spacing: -0.04em; text-transform: uppercase; margin: 0 0 24px; }
 .info p { font-weight: 400; font-size: clamp(15px, 1.6vw, 20px); margin: 0 0 18px; }
 .info a { transition: color 120ms linear; }
 .info a:hover { color: var(--accent); }

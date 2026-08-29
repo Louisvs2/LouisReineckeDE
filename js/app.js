@@ -147,8 +147,13 @@ function styleLetter(span, i) {
 /* Zerlegt die Titelzeile in einzelne Buchstaben, damit jeder fuer sich
    in Gewicht und Groesse atmen kann. <br> bleibt als Zeilenumbruch erhalten. */
 function initTitle() {
-  const el = document.querySelector("[data-split]");
-  if (!el) return;
+  document.querySelectorAll("[data-split]").forEach(splitTitle);
+}
+
+function splitTitle(el) {
+  // Ein bereits zerlegter Titel darf nicht erneut aufgeteilt werden.
+  if (el.dataset.split === "done") return;
+  el.dataset.split = "done";
 
   const nodes = Array.from(el.childNodes);
   el.textContent = "";
@@ -204,7 +209,7 @@ function renderProject(data) {
 
   root.innerHTML = `
     <header class="project">
-      <h1>${esc(p.title)}</h1>
+      <h1 data-split>${esc(p.title)}</h1>
       <p class="project__lede">${esc(p.excerpt)}</p>
       <dl class="specs">
         <div><dt>Kunde</dt><dd>${esc(p.client)}</dd></div>
@@ -232,7 +237,7 @@ function renderInfo(data) {
     .join(" · ");
 
   root.innerHTML = `
-    <h1>${esc(site.name)}</h1>
+    <h1 data-split>${esc(site.name)}</h1>
     <p>${esc(site.intro)}</p>
     <p>${esc(site.role)} — ${esc(site.location)}</p>
     <p>Anfragen: <a href="mailto:${esc(site.email)}">${esc(site.email)}</a></p>
@@ -242,11 +247,12 @@ function renderInfo(data) {
 loadData()
   .then((data) => {
     renderChrome(data.site);
-    initTitle();
     renderHome(data);
-    initPeek(data.projects);
     renderProject(data);
     renderInfo(data);
+    // Zuletzt: die Titel der Unterseiten entstehen erst beim Rendern.
+    initTitle();
+    initPeek(data.projects);
   })
   .catch((err) => {
     const main = document.querySelector("main");
