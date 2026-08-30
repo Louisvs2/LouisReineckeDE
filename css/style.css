@@ -392,3 +392,18 @@ img, video, iframe { display: block; max-width: 100%; }
 /* Noch nicht hochgeladen: sichtbar, aber sichtlich inaktiv. */
 .row--soon { color: var(--muted); pointer-events: none; }
 .row--soon:hover { background: none; color: var(--muted); }
+
+/* ---------- Impressum ---------- */
+
+.legal { padding-bottom: 20px; }
+
+.legal h2 {
+  margin: 34px 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.legal p { font-size: 15px; line-height: 1.5; margin: 0 0 10px; }

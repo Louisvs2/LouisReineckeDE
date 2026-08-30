@@ -122,3 +122,16 @@ Diese Datei enthaelt die echte Projektliste. Wer sie mit dem Importskript
 neu erzeugt, ueberschreibt sie lokal — dann muss die neue Fassung sowohl
 hochgeladen als auch hier eingecheckt werden, damit Repository und Server
 nicht auseinanderlaufen.
+
+## Impressum
+
+Die Angaben stehen in `data/projects.json` im Abschnitt `impressum`.
+Auszufuellen sind mindestens `strasse` und `ort` — eine ladungsfaehige
+Anschrift ist Pflicht, ein Postfach genuegt nicht.
+
+- `firma` nur setzen, wenn die Seite unter einer Firma laeuft
+  (z. B. "CultTwenty GbR"). Dann gehoeren auch die Gesellschafter genannt.
+- `ustid` eintragen, falls vorhanden. Sonst `kleinunternehmer` auf `true`
+  setzen, dann erscheint der Hinweis nach § 19 UStG.
+- `telefon` ist freiwillig; eine E-Mail-Adresse reicht als zweiter
+  Kontaktweg aus.

@@ -32,7 +32,8 @@ function renderChrome(site) {
     `<span>${esc(site.location)}</span>` +
     `<span class="foot__spacer"></span>` +
     links +
-    `<a href="mailto:${esc(site.email)}">${esc(site.email)}</a>`;
+    `<a href="mailto:${esc(site.email)}">${esc(site.email)}</a>` +
+    `<a href="impressum.html">Impressum</a>`;
 }
 
 function renderHome(data) {
@@ -68,6 +69,60 @@ function renderHome(data) {
       )
       .join("");
   }
+}
+
+/* Impressum. Die Angaben stehen in data/projects.json, damit sie an einer
+   Stelle gepflegt werden. Leere Felder werden weggelassen. */
+function renderImpressum(data) {
+  const root = document.querySelector("[data-impressum]");
+  if (!root) return;
+
+  const i = data.impressum || {};
+  const zeile = (t) => (t ? `<p>${esc(t)}</p>` : "");
+
+  const anschrift = [i.firma, i.betreiber, i.strasse, i.ort]
+    .filter(Boolean)
+    .map((t) => esc(t))
+    .join("<br>");
+
+  const steuer = i.ustid
+    ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer nach § 27 a Umsatzsteuergesetz:<br>${esc(i.ustid)}</p>`
+    : i.kleinunternehmer
+    ? `<h2>Umsatzsteuer</h2><p>Als Kleinunternehmer im Sinne von § 19 Umsatzsteuergesetz wird keine Umsatzsteuer berechnet.</p>`
+    : "";
+
+  document.title = "Impressum — " + data.site.name;
+
+  root.innerHTML = `
+    <h1 data-split>Impressum</h1>
+
+    <h2>Angaben gemäß § 5 DDG</h2>
+    <p>${anschrift}</p>
+
+    <h2>Kontakt</h2>
+    <p>E-Mail: <a href="mailto:${esc(i.email)}">${esc(i.email)}</a></p>
+    ${zeile(i.telefon ? "Telefon: " + i.telefon : "")}
+
+    ${steuer}
+
+    <h2>Verantwortlich für den Inhalt</h2>
+    <p>${esc(i.betreiber)}<br>Anschrift wie oben.</p>
+
+    <h2>Urheberrecht</h2>
+    <p>Alle Fotografien und Filme auf dieser Seite sind urheberrechtlich
+    geschützt. Eine Verwendung, Vervielfältigung oder Bearbeitung außerhalb
+    der Grenzen des Urheberrechts bedarf meiner schriftlichen Zustimmung.
+    Die unter Software angebotenen Dateien dürfen frei genutzt werden.</p>
+
+    <h2>Haftung für Links</h2>
+    <p>Diese Seite verweist an einzelnen Stellen auf externe Angebote, auf
+    deren Inhalte ich keinen Einfluss habe. Für diese Inhalte ist der
+    jeweilige Anbieter verantwortlich.</p>
+
+    <h2>Streitbeilegung</h2>
+    <p>Ich bin nicht bereit und nicht verpflichtet, an
+    Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+    teilzunehmen.</p>`;
 }
 
 /* Downloadliste. Die Dateigroesse wird beim Laden vom Server erfragt,
@@ -339,6 +394,7 @@ loadData()
     renderProject(data);
     renderInfo(data);
     renderDownloads(data);
+    renderImpressum(data);
     // Zuletzt: die Titel der Unterseiten entstehen erst beim Rendern.
     initTitle();
     initPeek(data.projects);

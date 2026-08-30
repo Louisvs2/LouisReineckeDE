@@ -16,6 +16,16 @@
       }
     ]
   },
+  "impressum": {
+    "betreiber": "Louis Reinecke",
+    "firma": "",
+    "strasse": "BITTE AUSFÜLLEN — Straße und Hausnummer",
+    "ort": "BITTE AUSFÜLLEN — Postleitzahl und Berlin",
+    "email": "louis.reinecke@culttwenty.de",
+    "telefon": "",
+    "ustid": "",
+    "kleinunternehmer": false
+  },
   "downloads": [
     {
       "name": "Glitch Preroll Panel",
