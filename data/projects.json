@@ -17,12 +17,15 @@
     ]
   },
   "impressum": {
-    "betreiber": "Louis Reinecke",
-    "firma": "",
-    "strasse": "BITTE AUSFÜLLEN — Straße und Hausnummer",
-    "ort": "BITTE AUSFÜLLEN — Postleitzahl und Berlin",
-    "email": "louis.reinecke@culttwenty.de",
-    "telefon": "",
+    "firma": "CultTwenty GbR",
+    "strasse": "Grundweg 16",
+    "ort": "34479 Breuna",
+    "gesellschafter": "Louis Reinecke und Noel David Ritter",
+    "telefon": "0151 5250 2831",
+    "whatsapp": "0151 5250 2831",
+    "email": "Redaktion@culttwenty.de",
+    "verantwortlich": "Louis Reinecke",
+    "verantwortlich_anschrift": "Grundweg 16, 34479 Breuna",
     "ustid": "",
     "kleinunternehmer": false
   },

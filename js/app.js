@@ -78,12 +78,21 @@ function renderImpressum(data) {
   if (!root) return;
 
   const i = data.impressum || {};
-  const zeile = (t) => (t ? `<p>${esc(t)}</p>` : "");
 
-  const anschrift = [i.firma, i.betreiber, i.strasse, i.ort]
-    .filter(Boolean)
-    .map((t) => esc(t))
-    .join("<br>");
+  const anschrift = [i.firma, i.strasse, i.ort].filter(Boolean).map(esc).join("<br>");
+
+  const vertreten = i.gesellschafter
+    ? `<p>Vertreten durch die Gesellschafter:<br>${esc(i.gesellschafter)}</p>`
+    : "";
+
+  // Telefonnummern ohne Leerzeichen, damit der Anrufen-Link funktioniert.
+  const waehlbar = (nr) => "tel:" + nr.replace(/[^\d+]/g, "");
+
+  const kontakt = [
+    i.telefon ? `Telefon: <a href="${waehlbar(i.telefon)}">${esc(i.telefon)}</a>` : "",
+    i.whatsapp ? `WhatsApp: ${esc(i.whatsapp)}` : "",
+    i.email ? `E-Mail: <a href="mailto:${esc(i.email)}">${esc(i.email)}</a>` : ""
+  ].filter(Boolean).join("<br>");
 
   const steuer = i.ustid
     ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer nach § 27 a Umsatzsteuergesetz:<br>${esc(i.ustid)}</p>`
@@ -98,15 +107,15 @@ function renderImpressum(data) {
 
     <h2>Angaben gemäß § 5 DDG</h2>
     <p>${anschrift}</p>
+    ${vertreten}
 
     <h2>Kontakt</h2>
-    <p>E-Mail: <a href="mailto:${esc(i.email)}">${esc(i.email)}</a></p>
-    ${zeile(i.telefon ? "Telefon: " + i.telefon : "")}
+    <p>${kontakt}</p>
 
     ${steuer}
 
-    <h2>Verantwortlich für den Inhalt</h2>
-    <p>${esc(i.betreiber)}<br>Anschrift wie oben.</p>
+    <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+    <p>${esc(i.verantwortlich || "")}<br>${esc(i.verantwortlich_anschrift || "")}</p>
 
     <h2>Urheberrecht</h2>
     <p>Alle Fotografien und Filme auf dieser Seite sind urheberrechtlich
