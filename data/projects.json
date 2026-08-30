@@ -18,10 +18,16 @@
   },
   "downloads": [
     {
-      "name": "Beispiel-LUT",
-      "kind": "LUT",
-      "note": "Ein Satz dazu, wofür das gut ist. Ersetze diesen Eintrag durch deinen ersten echten.",
-      "file": "files/beispiel-lut.zip"
+      "name": "Glitch Preroll Panel",
+      "kind": "AE-Script",
+      "note": "Erzeugt aus einem ausgewählten Layer einen kurzen Glitch-Vorlauf: mehrere Duplikate vor dem In-Point, jedes mit sprunghaft animierter Maske. Dockbares Panel für After Effects 2026, mit Anleitung als PDF.",
+      "file": "files/glitch-preroll-panel.zip"
+    },
+    {
+      "name": "Icon Animator",
+      "kind": "AE-Script",
+      "note": "Lässt ein Icon in wenigen Sprüngen entlang einer zufälligen Kurve durch die Komposition stottern. Jeder Klick würfelt einen neuen Pfad, alle Keyframes stehen auf Hold. Mit Anleitung als PDF.",
+      "file": "files/icon-animator.zip"
     }
   ],
   "projects": [
