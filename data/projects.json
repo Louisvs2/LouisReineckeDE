@@ -26,61 +26,357 @@
   ],
   "projects": [
     {
-      "slug": "nordsee",
-      "title": "Nordsee",
-      "client": "Eigenarbeit",
+      "slug": "clever",
+      "title": "CLEVER",
+      "client": "WILKO",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "HAMBURG"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/clever/01.jpg",
+      "video": "",
+      "images": [
+        "media/clever/01.jpg",
+        "media/clever/02.jpg",
+        "media/clever/03.jpg",
+        "media/clever/04.jpg",
+        "media/clever/05.jpg",
+        "media/clever/06.jpg",
+        "media/clever/07.jpg",
+        "media/clever/08.jpg",
+        "media/clever/09.jpg",
+        "media/clever/10.jpg",
+        "media/clever/11.jpg",
+        "media/clever/12.jpg",
+        "media/clever/13.jpg",
+        "media/clever/14.jpg",
+        "media/clever/15.jpg"
+      ]
+    },
+    {
+      "slug": "dumm",
+      "title": "DUMM",
+      "client": "KIMANY",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "BERLIN"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/dumm/01.jpg",
+      "video": "",
+      "images": [
+        "media/dumm/01.jpg",
+        "media/dumm/02.jpg",
+        "media/dumm/03.jpg",
+        "media/dumm/04.jpg",
+        "media/dumm/05.jpg",
+        "media/dumm/06.jpg",
+        "media/dumm/07.jpg",
+        "media/dumm/08.jpg",
+        "media/dumm/09.jpg",
+        "media/dumm/10.jpg",
+        "media/dumm/11.jpg",
+        "media/dumm/12.jpg",
+        "media/dumm/13.jpg"
+      ]
+    },
+    {
+      "slug": "engelgesicht",
+      "title": "ENGELGESICHT",
+      "client": "KIMANY",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "BERLIN"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/engelgesicht/01.jpg",
+      "video": "",
+      "images": [
+        "media/engelgesicht/01.jpg",
+        "media/engelgesicht/02.jpg",
+        "media/engelgesicht/03.jpg",
+        "media/engelgesicht/04.jpg",
+        "media/engelgesicht/05.jpg",
+        "media/engelgesicht/06.jpg",
+        "media/engelgesicht/07.jpg",
+        "media/engelgesicht/08.jpg",
+        "media/engelgesicht/09.jpg",
+        "media/engelgesicht/10.jpg",
+        "media/engelgesicht/11.jpg",
+        "media/engelgesicht/12.jpg",
+        "media/engelgesicht/13.jpg"
+      ]
+    },
+    {
+      "slug": "golf",
+      "title": "GOLF",
+      "client": "LEN MAUKE",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "KASSEL"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/golf/01.jpg",
+      "video": "",
+      "images": [
+        "media/golf/01.jpg",
+        "media/golf/02.jpg",
+        "media/golf/03.jpg"
+      ]
+    },
+    {
+      "slug": "jeans",
+      "title": "JEANS",
+      "client": "LEN MAUKE",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "BERLIN"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/jeans/01.jpg",
+      "video": "",
+      "images": [
+        "media/jeans/01.jpg",
+        "media/jeans/02.jpg",
+        "media/jeans/03.jpg",
+        "media/jeans/04.jpg",
+        "media/jeans/05.jpg",
+        "media/jeans/06.jpg"
+      ]
+    },
+    {
+      "slug": "kopfsache",
+      "title": "KOPFSACHE",
+      "client": "HOTI",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "BERLIN"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/kopfsache/01.jpg",
+      "video": "",
+      "images": [
+        "media/kopfsache/01.jpg",
+        "media/kopfsache/02.jpg",
+        "media/kopfsache/03.jpg",
+        "media/kopfsache/04.jpg",
+        "media/kopfsache/05.jpg",
+        "media/kopfsache/06.jpg"
+      ]
+    },
+    {
+      "slug": "tasser-le-passer-et-tailler",
+      "title": "TASSER LE PASSER ET TAILLER",
+      "client": "MAYLIE",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "PARIS"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/tasser-le-passer-et-tailler/01.jpg",
+      "video": "",
+      "images": [
+        "media/tasser-le-passer-et-tailler/01.jpg",
+        "media/tasser-le-passer-et-tailler/02.jpg",
+        "media/tasser-le-passer-et-tailler/03.jpg",
+        "media/tasser-le-passer-et-tailler/04.jpg",
+        "media/tasser-le-passer-et-tailler/05.jpg",
+        "media/tasser-le-passer-et-tailler/06.jpg",
+        "media/tasser-le-passer-et-tailler/07.jpg",
+        "media/tasser-le-passer-et-tailler/08.jpg"
+      ]
+    },
+    {
+      "slug": "titelkampf",
+      "title": "TITELKAMPF",
+      "client": "HOUSSINE",
+      "year": "2026",
+      "type": "Fotografie",
+      "tags": [
+        "KASSEL"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/titelkampf/01.jpg",
+      "video": "",
+      "images": [
+        "media/titelkampf/01.jpg",
+        "media/titelkampf/02.jpg",
+        "media/titelkampf/03.jpg",
+        "media/titelkampf/04.jpg",
+        "media/titelkampf/05.jpg"
+      ]
+    },
+    {
+      "slug": "arcteryx",
+      "title": "ARCTERYX",
+      "client": "LOUIS REINECKE",
       "year": "2025",
       "type": "Fotografie",
       "tags": [
-        "Analog",
-        "Landschaft",
-        "Serie"
+        "DÄNEMARK"
       ],
-      "excerpt": "Eine Woche an der Küste, fotografiert auf 35mm.",
-      "text": "Kurzer Fließtext zum Projekt. Zwei bis vier Sätze reichen — was war der Auftrag, was war die Idee, was ist entstanden.",
-      "cover": "media/nordsee/01.jpg",
+      "excerpt": "",
+      "text": "",
+      "cover": "media/arcteryx/01.jpg",
       "video": "",
       "images": [
-        "media/nordsee/01.jpg",
-        "media/nordsee/02.jpg",
-        "media/nordsee/03.jpg"
+        "media/arcteryx/01.jpg",
+        "media/arcteryx/02.jpg",
+        "media/arcteryx/03.jpg"
       ]
     },
     {
-      "slug": "atelier",
-      "title": "Atelier",
-      "client": "Kundenname",
+      "slug": "doenche",
+      "title": "DÖNCHE",
+      "client": "LEN MAUKE",
       "year": "2025",
-      "type": "Video",
+      "type": "Fotografie",
       "tags": [
-        "Portrait",
-        "Doku"
+        "KASSEL"
       ],
-      "excerpt": "Portraitfilm über eine Werkstatt und die Menschen darin.",
-      "text": "Kurzer Fließtext zum Projekt.",
-      "cover": "media/atelier/01.jpg",
-      "video": "https://www.youtube.com/embed/VIDEO_ID",
+      "excerpt": "",
+      "text": "",
+      "cover": "media/doenche/01.jpg",
+      "video": "",
       "images": [
-        "media/atelier/01.jpg",
-        "media/atelier/02.jpg"
+        "media/doenche/01.jpg",
+        "media/doenche/02.jpg",
+        "media/doenche/03.jpg",
+        "media/doenche/04.jpg",
+        "media/doenche/05.jpg",
+        "media/doenche/06.jpg",
+        "media/doenche/07.jpg",
+        "media/doenche/08.jpg",
+        "media/doenche/09.jpg",
+        "media/doenche/10.jpg",
+        "media/doenche/11.jpg",
+        "media/doenche/12.jpg",
+        "media/doenche/13.jpg",
+        "media/doenche/14.jpg",
+        "media/doenche/15.jpg",
+        "media/doenche/16.jpg",
+        "media/doenche/17.jpg",
+        "media/doenche/18.jpg"
       ]
     },
     {
-      "slug": "lauf",
-      "title": "Lauf",
-      "client": "Kundenname",
-      "year": "2024",
-      "type": "Video",
+      "slug": "duenen",
+      "title": "DÜNEN",
+      "client": "CULT",
+      "year": "2025",
+      "type": "Fotografie",
       "tags": [
-        "Commercial",
-        "Sport"
+        "DÄNEMARK"
       ],
-      "excerpt": "Kampagnenfilm, gedreht an einem Tag.",
-      "text": "Kurzer Fließtext zum Projekt.",
-      "cover": "media/lauf/01.jpg",
+      "excerpt": "",
+      "text": "",
+      "cover": "media/duenen/01.jpg",
       "video": "",
       "images": [
-        "media/lauf/01.jpg"
+        "media/duenen/01.jpg",
+        "media/duenen/02.jpg",
+        "media/duenen/03.jpg",
+        "media/duenen/04.jpg",
+        "media/duenen/05.jpg"
+      ]
+    },
+    {
+      "slug": "garagen",
+      "title": "GARAGEN",
+      "client": "LEN MAUKE",
+      "year": "2025",
+      "type": "Fotografie",
+      "tags": [
+        "KASSEL"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/garagen/01.jpg",
+      "video": "",
+      "images": [
+        "media/garagen/01.jpg",
+        "media/garagen/02.jpg",
+        "media/garagen/03.jpg",
+        "media/garagen/04.jpg",
+        "media/garagen/05.jpg",
+        "media/garagen/06.jpg"
+      ]
+    },
+    {
+      "slug": "gun",
+      "title": "GUN",
+      "client": "ZARA",
+      "year": "2025",
+      "type": "Fotografie",
+      "tags": [
+        "ESSEN"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/gun/01.jpg",
+      "video": "",
+      "images": [
+        "media/gun/01.jpg",
+        "media/gun/02.jpg",
+        "media/gun/03.jpg",
+        "media/gun/04.jpg"
+      ]
+    },
+    {
+      "slug": "len",
+      "title": "LEN",
+      "client": "LEN MAUKE",
+      "year": "2025",
+      "type": "Fotografie",
+      "tags": [
+        "KASSEL"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/len/01.jpg",
+      "video": "",
+      "images": [
+        "media/len/01.jpg",
+        "media/len/02.jpg",
+        "media/len/03.jpg",
+        "media/len/04.jpg"
+      ]
+    },
+    {
+      "slug": "training",
+      "title": "TRAINING",
+      "client": "MICHAEL OBODOZIE",
+      "year": "2025",
+      "type": "Fotografie",
+      "tags": [
+        "KASSEL"
+      ],
+      "excerpt": "",
+      "text": "",
+      "cover": "media/training/01.jpg",
+      "video": "",
+      "images": [
+        "media/training/01.jpg",
+        "media/training/02.jpg",
+        "media/training/03.jpg",
+        "media/training/04.jpg",
+        "media/training/05.jpg"
       ]
     }
   ]

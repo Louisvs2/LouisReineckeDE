@@ -115,3 +115,10 @@ koennen. Zwei Schritte pro Datei:
 Die Dateigroesse steht nicht in der JSON — sie wird beim Laden der Seite
 vom Server erfragt. Fehlt eine Datei auf dem Server, bleibt der Eintrag
 sichtbar und zeigt „Bald" statt einer Groesse.
+
+### Achtung bei data/projects.json
+
+Diese Datei enthaelt die echte Projektliste. Wer sie mit dem Importskript
+neu erzeugt, ueberschreibt sie lokal — dann muss die neue Fassung sowohl
+hochgeladen als auch hier eingecheckt werden, damit Repository und Server
+nicht auseinanderlaufen.
