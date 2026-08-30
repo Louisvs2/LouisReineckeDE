@@ -92,3 +92,26 @@ danach von Hand in der JSON ergaenzt.
 
 Verkleinert wird mit `sips`, das auf jedem Mac vorhanden ist. Fehlt es, werden
 die Bilder unveraendert kopiert — dann sollte man sie vorher selbst verkleinern.
+
+## Software: Dateien zum Herunterladen
+
+Der Menuepunkt Software listet Dateien, die Besucher frei herunterladen
+koennen. Zwei Schritte pro Datei:
+
+1. Die Datei per FTP nach `files/` legen. ZIP-Archive sind am
+   verlaesslichsten, weil der Browser sie sicher herunterlaedt statt sie
+   anzuzeigen.
+2. In `data/projects.json` im Abschnitt `downloads` einen Eintrag ergaenzen:
+
+```json
+{
+  "name": "Kodak 2383 LUT",
+  "kind": "LUT",
+  "note": "Ein Satz dazu, wofuer das gut ist.",
+  "file": "files/kodak-2383.zip"
+}
+```
+
+Die Dateigroesse steht nicht in der JSON — sie wird beim Laden der Seite
+vom Server erfragt. Fehlt eine Datei auf dem Server, bleibt der Eintrag
+sichtbar und zeigt „Bald" statt einer Groesse.

@@ -70,6 +70,53 @@ function renderHome(data) {
   }
 }
 
+/* Downloadliste. Die Dateigroesse wird beim Laden vom Server erfragt,
+   damit sie nicht von Hand gepflegt werden muss. */
+function renderDownloads(data) {
+  const host = document.querySelector("[data-downloads]");
+  if (!host) return;
+
+  const items = data.downloads || [];
+  if (!items.length) {
+    host.innerHTML = `<p class="empty">Zurzeit stehen keine Dateien bereit.</p>`;
+    return;
+  }
+
+  host.innerHTML = items
+    .map(
+      (d, i) => `
+      <a class="row row--dl" href="${esc(d.file)}" download>
+        <span class="row__title">${esc(d.name)}</span>
+        <span class="row__meta row__meta--client">${esc(d.note || "")}</span>
+        <span class="row__meta row__meta--type">${esc(d.kind || "")}</span>
+        <span class="row__meta" data-size="${i}">Laden</span>
+      </a>`
+    )
+    .join("");
+
+  items.forEach((d, i) => {
+    const cell = host.querySelector(`[data-size="${i}"]`);
+    fetch(d.file, { method: "HEAD" })
+      .then((res) => {
+        const bytes = Number(res.headers.get("content-length"));
+        if (!res.ok) throw new Error("fehlt");
+        cell.textContent = bytes ? groesse(bytes) : "Laden";
+      })
+      .catch(() => {
+        // Datei liegt noch nicht auf dem Server: Eintrag bleibt sichtbar,
+        // aber ohne Downloadversprechen.
+        cell.textContent = "Bald";
+        cell.closest(".row").classList.add("row--soon");
+      });
+  });
+}
+
+function groesse(bytes) {
+  if (bytes >= 1e9) return (bytes / 1e9).toFixed(1).replace(".", ",") + " GB";
+  if (bytes >= 1e6) return Math.round(bytes / 1e6) + " MB";
+  return Math.max(1, Math.round(bytes / 1e3)) + " KB";
+}
+
 /* Rotierender Ring neben dem Titel. Die Form entsteht aus einer Kreisbahn,
    deren Punkte jeweils eigene Abweichungen bekommen — dadurch ist der Ring
    nie exakt rund und sitzt bei jedem Aufruf anders. Aussen- und Innenkante
@@ -291,6 +338,7 @@ loadData()
     renderHome(data);
     renderProject(data);
     renderInfo(data);
+    renderDownloads(data);
     // Zuletzt: die Titel der Unterseiten entstehen erst beim Rendern.
     initTitle();
     initPeek(data.projects);

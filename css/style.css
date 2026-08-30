@@ -359,3 +359,36 @@ img, video, iframe { display: block; max-width: 100%; }
 @media (max-width: 700px) {
   .mark { bottom: 12px; font-size: 15px; }
 }
+
+/* ---------- Software: Downloadliste ---------- */
+
+/* Eigene Seiten ohne Ring brauchen die zweite Spalte nicht. */
+.hero--plain { grid-template-columns: 1fr; }
+
+.hero__note {
+  max-width: 46ch;
+  margin: 20px 0 0;
+  font-weight: 400;
+  font-size: clamp(15px, 1.5vw, 19px);
+}
+
+/* Beschreibung braucht mehr Platz als eine Kundenspalte. */
+.row--dl { grid-template-columns: minmax(9ch, 1fr) minmax(0, 1.6fr) 10ch 7ch; }
+
+.row--dl .row__meta--client {
+  font-weight: 400;
+  font-size: 13.5px;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.4;
+  max-width: 52ch;
+}
+
+@media (max-width: 700px) {
+  .row--dl { grid-template-columns: 1fr auto; }
+  .row--dl .row__meta--client { display: block; grid-column: 1 / -1; }
+}
+
+/* Noch nicht hochgeladen: sichtbar, aber sichtlich inaktiv. */
+.row--soon { color: var(--muted); pointer-events: none; }
+.row--soon:hover { background: none; color: var(--muted); }
