@@ -134,9 +134,13 @@ def main():
     media = wurzel / "media"
     ziel_json = wurzel / "data" / "projects.json"
 
-    # Bestehende Kopf-Angaben uebernehmen, damit Name und Kontakt erhalten bleiben.
+    # Kopf-Angaben und Downloadliste uebernehmen: nur die Projekte werden
+    # aus den Ordnern neu aufgebaut, alles andere bleibt erhalten.
+    downloads = []
     if ziel_json.exists():
-        site = json.loads(ziel_json.read_text(encoding="utf-8"))["site"]
+        alt = json.loads(ziel_json.read_text(encoding="utf-8"))
+        site = alt["site"]
+        downloads = alt.get("downloads", [])
     else:
         site = {"name": "LOUIS REINECKE", "role": "Video & Fotografie",
                 "location": "Berlin", "email": "", "intro": "", "links": []}
@@ -207,7 +211,8 @@ def main():
 
     ziel_json.parent.mkdir(parents=True, exist_ok=True)
     ziel_json.write_text(
-        json.dumps({"site": site, "projects": projekte}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps({"site": site, "downloads": downloads, "projects": projekte},
+                   ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8")
 
     groesse = sum(f.stat().st_size for f in media.rglob("*.jpg")) / 1_000_000
