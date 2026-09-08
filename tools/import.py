@@ -18,6 +18,13 @@ Aufruf auf dem Mac:
 
     python3 tools/import.py ~/Desktop/Projekte
 
+Fuer Drehorte gibt es denselben Ablauf mit einem Schalter:
+
+    python3 tools/import.py --locations ~/Desktop/Locations
+
+Dort ist der Ordnername der Name des Orts, die Textdatei enthaelt die
+Adresse. Die Bilder landen in locations/<slug>/.
+
 Ergebnis: media/<slug>/01.jpg ... und eine neue data/projects.json.
 Die Originale werden nicht veraendert.
 """
@@ -120,17 +127,86 @@ def bild_verkleinern(quelle, ziel):
         return False
 
 
+def locations_einlesen(quelle, wurzel):
+    """Baut den Abschnitt locations aus einem Ordner mit Ortsordnern."""
+    ziel_json = wurzel / "data" / "projects.json"
+    daten = json.loads(ziel_json.read_text(encoding="utf-8"))
+
+    ordner = sorted([p for p in quelle.iterdir()
+                     if p.is_dir()
+                     and not p.name.startswith(".")
+                     and p.name != "__MACOSX"])
+
+    orte = []
+    for p in ordner:
+        name = p.name.strip()
+        slug = slugify(name)
+
+        adresse = ""
+        for txt in sorted(p.glob("*.txt")):
+            inhalt = txt.read_text(encoding="utf-8", errors="ignore").strip()
+            if inhalt:
+                # Mehrzeilige Adressen zu einer Zeile zusammenziehen.
+                adresse = ", ".join(z.strip() for z in inhalt.splitlines() if z.strip())
+            break
+
+        bilder = sorted([f for f in p.iterdir()
+                         if f.is_file() and f.suffix.lower() in BILD_ENDUNGEN
+                         and not f.name.startswith(".")])
+
+        print(f"» {name}  |  {adresse or 'ohne Adresse'}")
+        if not bilder:
+            print("    uebersprungen: keine Bilder gefunden")
+            continue
+
+        zielordner = wurzel / "locations" / slug
+        zielordner.mkdir(parents=True, exist_ok=True)
+        for alt in zielordner.glob("*.jpg"):
+            alt.unlink()
+
+        pfade = []
+        for i, bild in enumerate(bilder, start=1):
+            dateiname = f"{i:02d}.jpg"
+            bild_verkleinern(bild, zielordner / dateiname)
+            pfade.append(f"locations/{slug}/{dateiname}")
+        print(f"    {len(pfade)} Bilder")
+
+        orte.append({"slug": slug, "name": name, "address": adresse, "images": pfade})
+
+    daten["locations"] = orte
+    ziel_json.write_text(
+        json.dumps(daten, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    groesse = sum(f.stat().st_size for f in (wurzel / "locations").rglob("*.jpg")) / 1_000_000
+    print(f"\nFertig: {len(orte)} Orte, {groesse:.0f} MB in locations/")
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
 
-    quelle = Path(sys.argv[1]).expanduser()
+    argumente = sys.argv[1:]
+    nur_orte = "--locations" in argumente
+    if nur_orte:
+        argumente.remove("--locations")
+    if not argumente:
+        print(__doc__)
+        sys.exit(1)
+
+    quelle = Path(argumente[0]).expanduser()
     if not quelle.is_dir():
         print(f"Ordner nicht gefunden: {quelle}")
         sys.exit(1)
 
     wurzel = Path(__file__).resolve().parent.parent
+
+    if nur_orte:
+        if not hat_sips():
+            print("Hinweis: sips nicht gefunden — Bilder werden unveraendert kopiert.\n")
+        locations_einlesen(quelle, wurzel)
+        return
+
     media = wurzel / "media"
     ziel_json = wurzel / "data" / "projects.json"
 

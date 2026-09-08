@@ -135,3 +135,29 @@ Anschrift ist Pflicht, ein Postfach genuegt nicht.
   setzen, dann erscheint der Hinweis nach § 19 UStG.
 - `telefon` ist freiwillig; eine E-Mail-Adresse reicht als zweiter
   Kontaktweg aus.
+
+## Locations
+
+Der Menuepunkt Locations zeigt Drehorte mit Adresse und Bildern. Aufbau
+des Quellordners:
+
+```
+Locations/
+  Alte Münze/
+    adresse.txt        (enthaelt nur die Anschrift, gern mehrzeilig)
+    IMG_001.jpg
+    IMG_002.jpg
+```
+
+Der Ordnername ist der Name des Orts, die Textdatei die Adresse.
+Einlesen mit demselben Skript, nur mit Schalter:
+
+```
+python3 tools/import.py --locations ~/Desktop/Locations
+```
+
+Die Bilder landen in `locations/<slug>/`, der Abschnitt `locations` in
+`data/projects.json` wird neu geschrieben. Projekte, Downloads und
+Impressum bleiben unberuehrt. Die Adresse verlinkt auf eine Kartensuche
+bei OpenStreetMap — ohne eingebettete Karte, damit die Seite keine Daten
+an Dritte weitergibt.

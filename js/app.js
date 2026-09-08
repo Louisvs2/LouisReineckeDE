@@ -71,6 +71,40 @@ function renderHome(data) {
   }
 }
 
+/* Drehorte. Jeder Ort bekommt eine Kopfzeile mit Adresse und darunter
+   seine Bilder. Die Adresse fuehrt als Link zu einer Kartensuche. */
+function renderLocations(data) {
+  const host = document.querySelector("[data-locations]");
+  if (!host) return;
+
+  const orte = data.locations || [];
+  if (!orte.length) {
+    host.innerHTML = `<p class="empty">Hier stehen bald Orte.</p>`;
+    return;
+  }
+
+  host.innerHTML = orte
+    .map((o) => {
+      const bilder = (o.images || [])
+        .map((src) => `<img src="${esc(src)}" alt="${esc(o.name)}" loading="lazy" onerror="this.remove()">`)
+        .join("");
+
+      const karte = o.address
+        ? `<a class="ort__adresse" href="https://www.openstreetmap.org/search?query=${encodeURIComponent(o.address)}" target="_blank" rel="noopener">${esc(o.address)}</a>`
+        : "";
+
+      return `
+        <section class="ort">
+          <div class="ort__kopf">
+            <h2 class="ort__name">${esc(o.name)}</h2>
+            ${karte}
+          </div>
+          <div class="ort__bilder">${bilder}</div>
+        </section>`;
+    })
+    .join("");
+}
+
 /* Impressum. Die Angaben stehen in data/projects.json, damit sie an einer
    Stelle gepflegt werden. Leere Felder werden weggelassen. */
 function renderImpressum(data) {
@@ -404,6 +438,7 @@ loadData()
     renderInfo(data);
     renderDownloads(data);
     renderImpressum(data);
+    renderLocations(data);
     // Zuletzt: die Titel der Unterseiten entstehen erst beim Rendern.
     initTitle();
     initPeek(data.projects);
