@@ -103,6 +103,86 @@ def youtube_embed(url):
     return url
 
 
+def text_aus_datei(pfad):
+    """Liest eine Text- oder RTF-Datei als reinen Text.
+
+    TextEdit legt auf dem Mac standardmaessig RTF an. Der Kopf einer solchen
+    Datei enthaelt Schrift- und Farbtabellen, die nicht in der Adresse landen
+    duerfen, deshalb wird hier Zeichen fuer Zeichen geparst statt mit
+    Suchmustern gearbeitet.
+    """
+    roh = pfad.read_text(encoding="utf-8", errors="ignore")
+    if pfad.suffix.lower() != ".rtf":
+        return roh.strip()
+
+    # Gruppen, die nur Definitionen enthalten und keinen sichtbaren Text.
+    stumm = ("fonttbl", "colortbl", "expandedcolortbl", "stylesheet",
+             "info", "generator", "pntext", "listtable", "rsidtbl")
+
+    aus = []
+    tiefe = 0
+    ueberspringen_ab = None   # Tiefe, ab der Inhalt verworfen wird
+    i, n = 0, len(roh)
+
+    while i < n:
+        c = roh[i]
+
+        if c == "{":
+            tiefe += 1
+            i += 1
+            continue
+
+        if c == "}":
+            if ueberspringen_ab is not None and tiefe <= ueberspringen_ab:
+                ueberspringen_ab = None
+            tiefe -= 1
+            i += 1
+            continue
+
+        if c == "\\":
+            # Sonderzeichen als Hexwert, etwa \'df fuer ß
+            if roh.startswith("\\'", i) and i + 3 < n:
+                zeichen = bytes([int(roh[i + 2:i + 4], 16)]).decode("cp1252", "ignore")
+                if ueberspringen_ab is None:
+                    aus.append(zeichen)
+                i += 4
+                continue
+
+            # Steuerwort einlesen
+            j = i + 1
+            if j < n and not roh[j].isalpha():
+                # Maskiertes Zeichen oder Zeilenumbruch
+                if roh[j] == "\n" and ueberspringen_ab is None:
+                    aus.append("\n")
+                elif roh[j] in "\\{}" and ueberspringen_ab is None:
+                    aus.append(roh[j])
+                i = j + 1
+                continue
+
+            while j < n and roh[j].isalpha():
+                j += 1
+            wort = roh[i + 1:j]
+            while j < n and (roh[j].isdigit() or roh[j] == "-"):
+                j += 1
+            if j < n and roh[j] == " ":
+                j += 1
+
+            if wort in ("par", "line"):
+                if ueberspringen_ab is None:
+                    aus.append("\n")
+            elif wort in stumm or wort == "*":
+                ueberspringen_ab = tiefe
+            i = j
+            continue
+
+        if ueberspringen_ab is None and c != "\n":
+            aus.append(c)
+        i += 1
+
+    zeilen = [z.strip() for z in "".join(aus).splitlines() if z.strip()]
+    return "\n".join(zeilen)
+
+
 def hat_sips():
     return shutil.which("sips") is not None
 
@@ -110,6 +190,11 @@ def hat_sips():
 def bild_verkleinern(quelle, ziel):
     """Verkleinert mit sips (auf jedem Mac vorhanden). Kopiert notfalls nur."""
     if not hat_sips():
+        # Ein HEIC unter dem Namen .jpg abzulegen wuerde eine Datei erzeugen,
+        # die kein Browser anzeigen kann — deshalb hier lieber auslassen.
+        if quelle.suffix.lower() in (".heic", ".tif", ".tiff"):
+            print(f"    ! {quelle.name} braucht sips zum Umwandeln, uebersprungen")
+            return None
         shutil.copy2(quelle, ziel)
         return False
     try:
@@ -143,8 +228,11 @@ def locations_einlesen(quelle, wurzel):
         slug = slugify(name)
 
         adresse = ""
-        for txt in sorted(p.glob("*.txt")):
-            inhalt = txt.read_text(encoding="utf-8", errors="ignore").strip()
+        notizen = sorted([f for f in p.iterdir()
+                          if f.suffix.lower() in (".txt", ".rtf")
+                          and not f.name.startswith(".")])
+        for datei in notizen:
+            inhalt = text_aus_datei(datei)
             if inhalt:
                 # Mehrzeilige Adressen zu einer Zeile zusammenziehen.
                 adresse = ", ".join(z.strip() for z in inhalt.splitlines() if z.strip())
@@ -165,9 +253,10 @@ def locations_einlesen(quelle, wurzel):
             alt.unlink()
 
         pfade = []
-        for i, bild in enumerate(bilder, start=1):
-            dateiname = f"{i:02d}.jpg"
-            bild_verkleinern(bild, zielordner / dateiname)
+        for bild in bilder:
+            dateiname = f"{len(pfade) + 1:02d}.jpg"
+            if bild_verkleinern(bild, zielordner / dateiname) is None:
+                continue
             pfade.append(f"locations/{slug}/{dateiname}")
         print(f"    {len(pfade)} Bilder")
 
@@ -240,8 +329,11 @@ def main():
 
         # YouTube-Link aus der Textdatei lesen, falls vorhanden
         video = ""
-        for txt in p.glob("*.txt"):
-            inhalt = txt.read_text(encoding="utf-8", errors="ignore").strip()
+        notizen = sorted([f for f in p.iterdir()
+                          if f.suffix.lower() in (".txt", ".rtf")
+                          and not f.name.startswith(".")])
+        for datei in notizen:
+            inhalt = text_aus_datei(datei)
             if inhalt:
                 video = youtube_embed(inhalt.splitlines()[0])
                 print(f"    Video: {video}")
@@ -262,9 +354,10 @@ def main():
             alt.unlink()
 
         pfade = []
-        for i, bild in enumerate(bilder, start=1):
-            name = f"{i:02d}.jpg"
-            bild_verkleinern(bild, zielordner / name)
+        for bild in bilder:
+            name = f"{len(pfade) + 1:02d}.jpg"
+            if bild_verkleinern(bild, zielordner / name) is None:
+                continue
             pfade.append(f"media/{slug}/{name}")
         print(f"    {len(pfade)} Bilder")
 
