@@ -31,6 +31,12 @@
   },
   "downloads": [
     {
+      "name": "Clip Beat Randomizer",
+      "kind": "Premiere-Panel",
+      "note": "Baut aus bereits rausgeschnittenen Clips einen Beat-Edit: Die Clips werden gemischt und framegenau auf die Beats eines Songs geschnitten. Andockbares Panel für Premiere Pro, mit Installer für Mac und Windows und Anleitung als PDF.",
+      "file": "files/clip-beat-randomizer.zip"
+    },
+    {
       "name": "Glitch Preroll Panel",
       "kind": "AE-Script",
       "note": "Erzeugt aus einem ausgewählten Layer einen kurzen Glitch-Vorlauf: mehrere Duplikate vor dem In-Point, jedes mit sprunghaft animierter Maske. Dockbares Panel für After Effects 2026, mit Anleitung als PDF.",
