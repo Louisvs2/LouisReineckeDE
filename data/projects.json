@@ -49,7 +49,28 @@
       "file": "files/icon-animator.zip"
     }
   ],
-  "locations": [],
+  "locations": [
+    {
+      "slug": "location-1",
+      "name": "location 1",
+      "address": "Augsburger Straße, 10789 Berlin, Deutschland",
+      "images": [
+        "locations/location-1/01.jpg",
+        "locations/location-1/02.jpg",
+        "locations/location-1/03.jpg"
+      ]
+    },
+    {
+      "slug": "location-2",
+      "name": "location 2",
+      "address": "Stargarder Straße, 10437 Berlin, Deutschland",
+      "images": [
+        "locations/location-2/01.jpg",
+        "locations/location-2/02.jpg",
+        "locations/location-2/03.jpg"
+      ]
+    }
+  ],
   "projects": [
     {
       "slug": "clever",
