@@ -161,3 +161,31 @@ Die Bilder landen in `locations/<slug>/`, der Abschnitt `locations` in
 Impressum bleiben unberuehrt. Die Adresse verlinkt auf eine Kartensuche
 bei OpenStreetMap — ohne eingebettete Karte, damit die Seite keine Daten
 an Dritte weitergibt.
+
+## Verwaltung über admin.php
+
+`admin.php` ist ein passwortgeschuetztes Formular, ueber das sich Projekte,
+Orte und Software direkt im Browser anlegen lassen. Es laeuft nur auf
+Strato — auf Vercel gibt es kein PHP. Die oeffentliche Seite bleibt
+unveraendert statisch.
+
+**Einrichten:** `admin.php` hochladen, `deine-domain.de/admin.php` aufrufen
+und beim ersten Besuch ein Passwort vergeben. Es landet als Hash in
+`admin-config.php`; diese Datei nie ins Repository uebernehmen. Zum
+Zuruecksetzen einfach loeschen.
+
+**Was das Formular tut:** Bilder werden auf 2200 Pixel verkleinert, als
+JPEG unter `media/<slug>/` bzw. `locations/<slug>/` durchnummeriert und in
+`data/projects.json` eingetragen. Archive landen in `files/`. Ein Eintrag
+mit gleichem Titel ersetzt den vorhandenen; ohne neue Bilder bleiben die
+alten erhalten.
+
+**Sicherheit:** Passwort als Hash, Sitzungs-Token gegen fremde Formulare,
+Sperre nach fuenf Fehlversuchen, Pruefung der Dateien anhand ihres Inhalts
+statt der Endung, und eine `.htaccess` in jedem Upload-Ordner, die das
+Ausfuehren von Code dort unterbindet.
+
+**Achtung:** Was ueber das Formular entsteht, liegt nur auf dem Server.
+Wer danach `data/projects.json` aus dem Repository hochlaedt, ueberschreibt
+es. Entweder nur noch das Formular nutzen oder die Datei gelegentlich vom
+Server ziehen und einchecken.

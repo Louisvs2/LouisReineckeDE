@@ -1,3 +1,7 @@
 .DS_Store
 node_modules/
 .vercel
+
+# Zugangsdaten der Verwaltung, gehoeren nicht ins Repository
+admin-config.php
+data/.login-versuche
