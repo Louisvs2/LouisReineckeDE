@@ -189,3 +189,24 @@ Ausfuehren von Code dort unterbindet.
 Wer danach `data/projects.json` aus dem Repository hochlaedt, ueberschreibt
 es. Entweder nur noch das Formular nutzen oder die Datei gelegentlich vom
 Server ziehen und einchecken.
+
+## Kundengalerien
+
+Im Backend lässt sich pro Auftrag eine Galerie anlegen: Titel, Kunde, ein
+Link zu den Originaldateien und die Vorschaubilder. Daraus entsteht eine
+Adresse der Form `galerie.php?k=<32 Hexzeichen>`, die nirgends verlinkt und
+fuer Suchmaschinen gesperrt ist.
+
+Der Kunde sieht die Vorschauen auf schwarzem Grund, auf Ringen im Raum
+angeordnet; beim Scrollen faehrt er durch die Ringe hindurch. Ein Klick
+oeffnet die Grossansicht mit Pfeilen und Escape. Der Knopf am unteren Rand
+fuehrt ueber `galerie.php?k=…&dl=1` zum Uebertragungslink — die Adresse
+steht dadurch nirgends im Quelltext und der Kunde sieht sie nicht.
+
+Bilder lassen sich nachtraeglich anlegen: „Bilder nachlegen" haengt an,
+ersetzt also nicht. So kommen auch groessere Auftraege in mehreren
+Durchgaengen durch Stratos Zeitlimit.
+
+Die Daten liegen in `data/galerien.json`, die Bilder unter
+`kunden/<schluessel>/`. Beides gehoert nicht ins Repository und steht
+deshalb in `.gitignore`.

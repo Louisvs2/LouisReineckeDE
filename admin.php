@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 const WURZEL      = __DIR__;
 const DATEN       = WURZEL . '/data/projects.json';
+const GALERIEN    = WURZEL . '/data/galerien.json';
 const CONFIG      = WURZEL . '/admin-config.php';
 const SPERRDATEI  = WURZEL . '/data/.login-versuche';
 const MAX_KANTE   = 2200;
@@ -31,6 +32,7 @@ session_start();
 $hash = is_file(CONFIG) ? (require CONFIG) : null;
 $fehler = '';
 $erfolg = '';
+$frischerLink = '';
 
 /* ---------------------------------------------------------------- Helfer */
 
@@ -102,6 +104,25 @@ function versuch_vermerken(bool $ok): void {
     if ($ok) { @unlink(SPERRDATEI); return; }
     $v = versuche_lesen();
     @file_put_contents(SPERRDATEI, json_encode(['n' => $v['n'] + 1, 'zeit' => time()]), LOCK_EX);
+}
+
+
+/* Kundengalerien liegen in einer eigenen Datei — sie gehen die oeffentliche
+   Seite nichts an und aendern sich viel haeufiger. */
+function galerien_lesen(): array {
+    if (!is_file(GALERIEN)) return [];
+    $g = json_decode((string)file_get_contents(GALERIEN), true);
+    return is_array($g) ? $g : [];
+}
+
+function galerien_schreiben(array $g): void {
+    $json = json_encode($g, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($json === false) throw new RuntimeException('Die Galerien liessen sich nicht speichern.');
+    $tmp = GALERIEN . '.tmp';
+    if (file_put_contents($tmp, $json . "\n", LOCK_EX) === false || !rename($tmp, GALERIEN)) {
+        @unlink($tmp);
+        throw new RuntimeException('Schreiben fehlgeschlagen. Sind die Rechte auf data/ gesetzt?');
+    }
 }
 
 /* ------------------------------------------------------------- Dateien */
@@ -390,6 +411,75 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             daten_schreiben($d);
             $erfolg = $name . ' gespeichert.';
 
+        } elseif ($tat === 'galerie') {
+            $titel = trim((string)($_POST['titel'] ?? ''));
+            if ($titel === '') throw new RuntimeException('Ein Titel wird gebraucht.');
+
+            $transfer = trim((string)($_POST['transfer'] ?? ''));
+            if ($transfer !== '' && !preg_match('~^https://~i', $transfer)) {
+                throw new RuntimeException('Der Übertragungslink muss mit https:// beginnen.');
+            }
+
+            $galerien = galerien_lesen();
+            $schluessel = trim((string)($_POST['schluessel'] ?? ''));
+
+            if ($schluessel !== '' && preg_match('/^[a-f0-9]{16,64}$/', $schluessel)) {
+                $stelle = null;
+                foreach ($galerien as $i => $g) {
+                    if (($g['key'] ?? '') === $schluessel) { $stelle = $i; break; }
+                }
+                if ($stelle === null) throw new RuntimeException('Diese Galerie gibt es nicht mehr.');
+                $pfade = $galerien[$stelle]['images'] ?? [];
+            } else {
+                $schluessel = bin2hex(random_bytes(16));
+                $stelle = null;
+                $pfade = [];
+            }
+
+            $ordner = WURZEL . '/kunden/' . $schluessel;
+            ordner_sichern($ordner, WURZEL . '/kunden');
+
+            $bilder = dateien_liste('bilder');
+            if ($bilder) {
+                // Angehaengt statt ersetzt: so lassen sich grosse Auftraege in
+                // mehreren Durchgaengen hochladen.
+                $n = count($pfade);
+                foreach ($bilder as $b) {
+                    $n++;
+                    $name = sprintf('%03d.jpg', $n);
+                    bild_speichern($b, $ordner . '/' . $name);
+                    $pfade[] = "kunden/$schluessel/$name";
+                }
+            }
+
+            $eintrag = [
+                'key'      => $schluessel,
+                'title'    => $titel,
+                'client'   => trim((string)($_POST['kunde'] ?? '')),
+                'transfer' => $transfer,
+                'created'  => $stelle !== null ? ($galerien[$stelle]['created'] ?? date('c')) : date('c'),
+                'images'   => $pfade,
+            ];
+
+            if ($stelle !== null) { $galerien[$stelle] = $eintrag; }
+            else { array_unshift($galerien, $eintrag); }
+
+            galerien_schreiben($galerien);
+            $erfolg = sprintf('Galerie %s gespeichert, %d %s. Link steht unten.',
+                              $titel, count($pfade), count($pfade) === 1 ? 'Bild' : 'Bilder');
+            $frischerLink = $schluessel;
+
+        } elseif ($tat === 'galerie-weg') {
+            $schluessel = (string)($_POST['schluessel'] ?? '');
+            if (!preg_match('/^[a-f0-9]{16,64}$/', $schluessel)) {
+                throw new RuntimeException('Ungültiger Schlüssel.');
+            }
+            $galerien = array_values(array_filter(galerien_lesen(),
+                fn($g) => ($g['key'] ?? '') !== $schluessel));
+            galerien_schreiben($galerien);
+            rekursiv_loeschen(WURZEL . '/kunden/' . $schluessel);
+            $erfolg = 'Galerie entfernt.';
+
         } elseif ($tat === 'loeschen') {
             $bereich = (string)($_POST['bereich'] ?? '');
             $kennung = (string)($_POST['kennung'] ?? '');
@@ -414,6 +504,7 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $daten = $ansicht === 'panel' ? daten_lesen() : ['downloads' => [], 'locations' => [], 'projects' => []];
+$galerien = $ansicht === 'panel' ? galerien_lesen() : [];
 ?>
 <!doctype html>
 <html lang="de">
@@ -473,6 +564,24 @@ $daten = $ansicht === 'panel' ? daten_lesen() : ['downloads' => [], 'locations' 
   .zeile b { font-weight:700; }
   .zeile em { font-style:normal; color:var(--grau); font-size:12px; }
 
+  .link { border:1px solid var(--akzent); padding:12px 14px; margin:0 0 18px;
+           display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  .link span { font-size:11px; font-weight:500; letter-spacing:.06em;
+               text-transform:uppercase; color:var(--akzent); }
+  .link input { flex:1; min-width:240px; padding:7px 9px; border:1px solid var(--linie); font:inherit; font-size:13px; }
+  .link button { padding:7px 14px; font-size:12px; }
+
+  .zeile--galerie { align-items:flex-start; }
+  .zeile--galerie > span:first-child { display:flex; flex-direction:column; gap:5px; min-width:0; flex:1; }
+  .linkfeld { width:100%; max-width:460px; padding:5px 7px; border:1px solid #ddd;
+              font:inherit; font-size:12px; color:var(--grau); }
+  .tasten { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .alsKnopf { margin:0; cursor:pointer; font-size:11px; font-weight:500;
+              text-transform:uppercase; letter-spacing:.04em; padding:4px 10px;
+              border:1px solid var(--linie); white-space:nowrap; }
+  .alsKnopf:hover { background:var(--ink); color:var(--paper); }
+  .alsKnopf input { display:none; }
+  .nachlegen { display:inline; }
   .fuss { padding:26px 20px 50px; color:var(--grau); font-size:12.5px; max-width:70ch; }
 </style>
 </head>
@@ -575,6 +684,66 @@ $daten = $ansicht === 'panel' ? daten_lesen() : ['downloads' => [], 'locations' 
               <input type="hidden" name="kennung" value="<?= h($o['slug'] ?? '') ?>">
               <button class="stumm" type="submit">Löschen</button>
             </form>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <h2>Kundengalerie</h2>
+    <?php if ($frischerLink !== ''):
+      $adresse = ($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . ($_SERVER['HTTP_HOST'] ?? 'louisreinecke.de')
+               . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/galerie.php?k=' . $frischerLink; ?>
+      <div class="link">
+        <span>Link für den Kunden</span>
+        <input type="text" id="frischerLink" value="<?= h($adresse) ?>" readonly onclick="this.select()">
+        <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('frischerLink').value); this.textContent='Kopiert';">Kopieren</button>
+      </div>
+    <?php endif; ?>
+
+    <form method="post" enctype="multipart/form-data" class="block">
+      <input type="hidden" name="token" value="<?= h(token()) ?>">
+      <input type="hidden" name="tat" value="galerie">
+      <input type="hidden" name="schluessel" value="">
+      <label><span>Titel, den der Kunde sieht</span><input type="text" name="titel" required></label>
+      <label><span>Kunde</span><input type="text" name="kunde"></label>
+      <label><span>Link zu den Originaldateien — WeTransfer oder ähnlich</span>
+        <input type="text" name="transfer" placeholder="https://we.tl/…"></label>
+      <label><span>Vorschaubilder — mehrere auswählbar</span>
+        <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple></label>
+      <button type="submit">Galerie anlegen</button>
+    </form>
+
+    <?php if ($galerien): ?>
+      <div class="liste">
+        <?php foreach ($galerien as $g):
+          $adr = ($_SERVER['REQUEST_SCHEME'] ?? 'https') . '://' . ($_SERVER['HTTP_HOST'] ?? '')
+               . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/galerie.php?k=' . ($g['key'] ?? ''); ?>
+          <div class="zeile zeile--galerie">
+            <span>
+              <b><?= h($g['title'] ?? '') ?></b>
+              <em><?= h($g['client'] ?? '') ?> · <?= count($g['images'] ?? []) ?> Bilder
+                  <?= !empty($g['transfer']) ? ' · Originale hinterlegt' : ' · ohne Originale' ?></em>
+              <input type="text" class="linkfeld" value="<?= h($adr) ?>" readonly onclick="this.select()">
+            </span>
+            <span class="tasten">
+              <form method="post" enctype="multipart/form-data" class="nachlegen">
+                <input type="hidden" name="token" value="<?= h(token()) ?>">
+                <input type="hidden" name="tat" value="galerie">
+                <input type="hidden" name="schluessel" value="<?= h($g['key'] ?? '') ?>">
+                <input type="hidden" name="titel" value="<?= h($g['title'] ?? '') ?>">
+                <input type="hidden" name="kunde" value="<?= h($g['client'] ?? '') ?>">
+                <input type="hidden" name="transfer" value="<?= h($g['transfer'] ?? '') ?>">
+                <label class="alsKnopf">Bilder nachlegen
+                  <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple
+                         onchange="this.form.submit()"></label>
+              </form>
+              <form method="post" onsubmit="return confirm('Galerie und alle Bilder wirklich löschen?')">
+                <input type="hidden" name="token" value="<?= h(token()) ?>">
+                <input type="hidden" name="tat" value="galerie-weg">
+                <input type="hidden" name="schluessel" value="<?= h($g['key'] ?? '') ?>">
+                <button class="stumm" type="submit">Löschen</button>
+              </form>
+            </span>
           </div>
         <?php endforeach; ?>
       </div>

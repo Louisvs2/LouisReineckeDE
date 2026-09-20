@@ -5,3 +5,5 @@ node_modules/
 # Zugangsdaten der Verwaltung, gehoeren nicht ins Repository
 admin-config.php
 data/.login-versuche
+data/galerien.json
+kunden/*/
