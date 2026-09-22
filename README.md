@@ -210,3 +210,15 @@ Durchgaengen durch Stratos Zeitlimit.
 Die Daten liegen in `data/galerien.json`, die Bilder unter
 `kunden/<schluessel>/`. Beides gehoert nicht ins Repository und steht
 deshalb in `.gitignore`.
+
+### Grenzen des Hosters
+
+PHP erlaubt in der Grundeinstellung nur rund 2 MB je Datei — zu wenig fuer
+Kamerafotos. Deshalb liegen `php.ini` und `.user.ini` im Hauptverzeichnis;
+Strato liest je nach Einrichtung eine der beiden. Sie heben die Grenzen auf
+40 MB je Datei, 256 MB je Sendung und 60 Dateien pro Formular.
+
+Ob es gewirkt hat, zeigt im Backend der Abschnitt „Was der Server kann".
+Steht dort weiter „2M", greift keine der beiden Dateien; dann laedt man die
+Bilder in kleineren Portionen hoch oder stellt die Werte im Strato-Login
+unter PHP-Version ein.

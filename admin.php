@@ -22,6 +22,12 @@ const JPEG_GUETE  = 78;
 const MAX_VERSUCHE = 5;
 const SPERRE_SEK  = 900;
 
+/* Bildverarbeitung ist speicher- und zeithungrig. Viele Hoster erlauben es,
+   die Grenzen zur Laufzeit anzuheben; wo nicht, bleibt der Vorgabewert und
+   die Pruefung weiter unten faengt zu grosse Bilder ab. */
+@ini_set('memory_limit', '384M');
+@set_time_limit(180);
+
 session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Strict',
@@ -145,6 +151,23 @@ function schutz_sichern(string $ordner): void {
  * Stellt einen Upload-Ordner her. $schutz ist der Ordner, der die Schutzdatei
  * bekommt — bei media/<projekt> also media/, bei files/ eben files/ selbst.
  */
+/** Liefert das Speicherlimit in Byte, oder 0 wenn es unbegrenzt ist. */
+function speichergrenze(): int {
+    $wert = trim((string)ini_get('memory_limit'));
+    if ($wert === '' || $wert === '-1') return 0;
+    $zahl = (float)$wert;
+    return (int)match (strtolower(substr($wert, -1))) {
+        'g' => $zahl * 1024 * 1024 * 1024,
+        'm' => $zahl * 1024 * 1024,
+        'k' => $zahl * 1024,
+        default => $zahl,
+    };
+}
+
+function byte_lesbar(string $wert): string {
+    return $wert === '' ? 'nicht gesetzt' : $wert;
+}
+
 function ordner_sichern(string $pfad, string $schutz): void {
     if (!is_dir($pfad) && !mkdir($pfad, 0755, true) && !is_dir($pfad)) {
         throw new RuntimeException("Ordner $pfad liess sich nicht anlegen.");
@@ -159,8 +182,16 @@ function ordner_sichern(string $pfad, string $schutz): void {
  * verkleinert als JPEG ab. Der ursprüngliche Dateiname wird nie übernommen.
  */
 function bild_speichern(array $datei, string $zielPfad): void {
+    if ($datei['error'] === UPLOAD_ERR_INI_SIZE || $datei['error'] === UPLOAD_ERR_FORM_SIZE) {
+        throw new RuntimeException(sprintf(
+            '%s ist groesser als die erlaubten %s je Datei. Hebe die Grenze mit der Datei '
+            . 'php.ini im Hauptverzeichnis an oder exportiere die Vorschau kleiner.',
+            $datei['name'], (string)ini_get('upload_max_filesize')
+        ));
+    }
     if ($datei['error'] !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('Upload unvollständig: ' . $datei['name']);
+        throw new RuntimeException('Upload unvollständig: ' . $datei['name']
+            . ' (Fehlernummer ' . $datei['error'] . ')');
     }
     if (!is_uploaded_file($datei['tmp_name'])) {
         throw new RuntimeException('Ungültiger Upload.');
@@ -175,6 +206,27 @@ function bild_speichern(array $datei, string $zielPfad): void {
     }
 
     [$breite, $hoehe, $typ] = $info;
+
+    /* GD legt das Bild unkomprimiert im Speicher ab: vier Byte je Bildpunkt,
+       und waehrend der Verkleinerung liegen Quelle und Ziel gleichzeitig da.
+       Lieber vorher mit klarer Ansage abbrechen als mitten drin abstuerzen. */
+    $grenze = speichergrenze();
+    if ($grenze > 0) {
+        $bedarf = $breite * $hoehe * 4 * 1.7 + 4 * 1024 * 1024;
+        if ($bedarf > $grenze) {
+            $mp = round($breite * $hoehe / 1_000_000, 1);
+            throw new RuntimeException(sprintf(
+                '%s ist mit %s Millionen Bildpunkten zu gross fuer den Server '
+                . '(er gibt %d MB Arbeitsspeicher frei, gebraucht wuerden etwa %d MB). '
+                . 'Exportiere die Vorschau kleiner, etwa mit 3000 Pixel Breite.',
+                $datei['name'], $mp, (int)round($grenze / 1048576), (int)round($bedarf / 1048576)
+            ));
+        }
+    }
+
+    // Jedes Bild bekommt seine eigene Zeitspanne, damit nicht die Summe zaehlt.
+    @set_time_limit(120);
+
     $quelle = match ($typ) {
         IMAGETYPE_JPEG => @imagecreatefromjpeg($datei['tmp_name']),
         IMAGETYPE_PNG  => @imagecreatefrompng($datei['tmp_name']),
@@ -292,6 +344,19 @@ if ($hash === null) {
 
 if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
+        /* Ist die Sendung groesser als post_max_size, verwirft PHP sie
+           vollstaendig — $_POST und $_FILES sind dann leer, und ohne diesen
+           Hinweis waere nicht zu erkennen, warum nichts passiert ist. */
+        $laenge = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($laenge > 0 && !$_POST && !$_FILES) {
+            throw new RuntimeException(sprintf(
+                'Die Sendung war mit %d MB zu gross — erlaubt sind %s. Lade die Bilder '
+                . 'in kleineren Portionen hoch, oder hebe die Grenze mit der Datei '
+                . 'php.ini im Hauptverzeichnis an.',
+                (int)round($laenge / 1048576), (string)ini_get('post_max_size')
+            ));
+        }
+
         token_pruefen();
         $d = daten_lesen();
         $tat = (string)($_POST['tat'] ?? '');
@@ -776,6 +841,38 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
+
+    <h2>Was der Server kann</h2>
+    <div class="liste">
+      <?php
+        $grenze = speichergrenze();
+        $maxBild = $grenze > 0 ? (int)floor(($grenze - 4 * 1048576) / (4 * 1.7)) : 0;
+        $pruefung = [
+          'Arbeitsspeicher je Vorgang' => $grenze > 0 ? round($grenze / 1048576) . ' MB' : 'unbegrenzt',
+          'Grösstes Bild, das damit geht' => $maxBild > 0
+              ? number_format($maxBild / 1_000_000, 1, ',', '.') . ' Millionen Bildpunkte'
+                . ' (etwa ' . (int)round(sqrt($maxBild * 1.5)) . ' × ' . (int)round(sqrt($maxBild / 1.5)) . ' Pixel)'
+              : 'keine Begrenzung',
+          'Grösse je Datei' => byte_lesbar((string)ini_get('upload_max_filesize')),
+          'Grösse aller Dateien zusammen' => byte_lesbar((string)ini_get('post_max_size')),
+          'Dateien je Formular' => byte_lesbar((string)ini_get('max_file_uploads')),
+          'Rechenzeit je Aufruf' => ((int)ini_get('max_execution_time') ?: '∞') . ' Sekunden',
+          'Bildbibliothek GD' => function_exists('imagejpeg')
+              ? 'vorhanden' . (function_exists('gd_info') ? ' (' . (gd_info()['GD Version'] ?? '') . ')' : '')
+              : 'FEHLT — ohne sie geht kein Bildupload',
+          'data/ beschreibbar' => is_writable(WURZEL . '/data') ? 'ja' : 'NEIN — Rechte auf 755 setzen',
+          'Hauptverzeichnis beschreibbar' => is_writable(WURZEL) ? 'ja' : 'NEIN — Ordner lassen sich nicht anlegen',
+          'PHP-Fassung' => PHP_VERSION,
+        ];
+        foreach ($pruefung as $was => $wie):
+          $schlimm = str_contains((string)$wie, 'NEIN') || str_contains((string)$wie, 'FEHLT');
+      ?>
+        <div class="zeile">
+          <span><b><?= h($was) ?></b></span>
+          <span<?= $schlimm ? ' style="color:var(--akzent);font-weight:700"' : '' ?>><?= h((string)$wie) ?></span>
+        </div>
+      <?php endforeach; ?>
+    </div>
 
     <p class="fuss">Bilder werden beim Hochladen auf <?= MAX_KANTE ?> Pixel längste Kante
       verkleinert und als JPEG gespeichert. Ein erneutes Speichern mit demselben Titel
