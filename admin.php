@@ -164,6 +164,19 @@ function byte_aus_ini(string $wert): int {
     };
 }
 
+/**
+ * Bringt die Projekte in die Reihenfolge, in der sie auf der Seite stehen:
+ * angepinnte zuerst in ihrer eigenen Folge, danach die uebrigen nach Jahr
+ * absteigend. Die Liste in der JSON ist die Anzeigereihenfolge, deshalb wird
+ * hier wirklich umsortiert und nicht nur ein Kennzeichen gesetzt.
+ */
+function projekte_ordnen(array $projekte): array {
+    $oben = array_values(array_filter($projekte, fn($p) => !empty($p['pinned'])));
+    $rest = array_values(array_filter($projekte, fn($p) => empty($p['pinned'])));
+    usort($rest, fn($a, $b) => strcmp((string)($b['year'] ?? ''), (string)($a['year'] ?? '')));
+    return array_merge($oben, $rest);
+}
+
 /** Liefert das Speicherlimit in Byte, oder 0 wenn es unbegrenzt ist. */
 function speichergrenze(): int {
     $wert = trim((string)ini_get('memory_limit'));
@@ -524,9 +537,14 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'images'  => $pfade,
             ];
 
+            // Ein bereits angepinntes Projekt bleibt beim Ersetzen angepinnt.
+            if ($vorhanden && !empty($vorhanden[0]['pinned'])) {
+                $eintrag['pinned'] = true;
+            }
+
             $d['projects'] = array_values(array_filter($d['projects'], fn($p) => ($p['slug'] ?? '') !== $s));
             $d['projects'][] = $eintrag;
-            usort($d['projects'], fn($a, $b) => strcmp((string)($b['year'] ?? ''), (string)($a['year'] ?? '')));
+            $d['projects'] = projekte_ordnen($d['projects']);
             daten_schreiben($d);
             $erfolg = sprintf('Projekt %s gespeichert, %d %s.', $titel, count($pfade),
                                 count($pfade) === 1 ? 'Bild' : 'Bilder');
@@ -649,6 +667,32 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             rekursiv_loeschen(WURZEL . '/kunden/' . $schluessel);
             $erfolg = 'Galerie entfernt.';
 
+        } elseif ($tat === 'pinnen') {
+            $kennung = (string)($_POST['kennung'] ?? '');
+            $stelle = null;
+            foreach ($d['projects'] as $i => $pr) {
+                if (($pr['slug'] ?? '') === $kennung) { $stelle = $i; break; }
+            }
+            if ($stelle === null) throw new RuntimeException('Dieses Projekt gibt es nicht.');
+
+            $projekt = $d['projects'][$stelle];
+            unset($d['projects'][$stelle]);
+            $d['projects'] = array_values($d['projects']);
+
+            if (!empty($projekt['pinned'])) {
+                unset($projekt['pinned']);
+                $d['projects'][] = $projekt;
+                $erfolg = $projekt['title'] . ' ist nicht mehr angepinnt.';
+            } else {
+                // Ganz nach vorn, damit mehrfaches Anpinnen eine Reihenfolge ergibt.
+                $projekt['pinned'] = true;
+                array_unshift($d['projects'], $projekt);
+                $erfolg = $projekt['title'] . ' steht jetzt oben.';
+            }
+
+            $d['projects'] = projekte_ordnen($d['projects']);
+            daten_schreiben($d);
+
         } elseif ($tat === 'loeschen') {
             $bereich = (string)($_POST['bereich'] ?? '');
             $kennung = (string)($_POST['kennung'] ?? '');
@@ -751,6 +795,11 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
   .alsKnopf:hover { background:var(--ink); color:var(--paper); }
   .alsKnopf input { display:none; }
   .nachlegen { display:inline; }
+  .zeile--oben { background:#fdf4f1; }
+  .nadel { font-style:normal; color:var(--akzent); font-size:10px; margin-right:4px; }
+  .stumm--an { background:var(--akzent); color:var(--paper); border-color:var(--akzent); }
+  .stumm--an:hover { background:var(--ink); border-color:var(--ink); }
+
   .hochladen { border-top:1px solid #e3e3e3; padding-top:14px; margin-top:4px; }
   .tastenreihe { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
   .tastenreihe button[disabled] { opacity:.35; cursor:not-allowed; }
@@ -848,15 +897,29 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
     <?php if ($daten['projects']): ?>
       <div class="liste">
         <?php foreach ($daten['projects'] as $p): ?>
-          <div class="zeile">
-            <span><b><?= h($p['title'] ?? '') ?></b> <em><?= h($p['year'] ?? '') ?> · <?= count($p['images'] ?? []) ?> Bilder</em></span>
-            <form method="post" onsubmit="return confirm('Projekt und Bilder wirklich löschen?')">
-              <input type="hidden" name="token" value="<?= h(token()) ?>">
-              <input type="hidden" name="tat" value="loeschen">
-              <input type="hidden" name="bereich" value="projekt">
-              <input type="hidden" name="kennung" value="<?= h($p['slug'] ?? '') ?>">
-              <button class="stumm" type="submit">Löschen</button>
-            </form>
+          <div class="zeile<?= !empty($p['pinned']) ? ' zeile--oben' : '' ?>">
+            <span>
+              <?php if (!empty($p['pinned'])): ?><i class="nadel" title="Angepinnt">▲</i><?php endif; ?>
+              <b><?= h($p['title'] ?? '') ?></b>
+              <em><?= h($p['year'] ?? '') ?> · <?= count($p['images'] ?? []) ?> Bilder</em>
+            </span>
+            <span class="tasten">
+              <form method="post">
+                <input type="hidden" name="token" value="<?= h(token()) ?>">
+                <input type="hidden" name="tat" value="pinnen">
+                <input type="hidden" name="kennung" value="<?= h($p['slug'] ?? '') ?>">
+                <button class="stumm<?= !empty($p['pinned']) ? ' stumm--an' : '' ?>" type="submit">
+                  <?= !empty($p['pinned']) ? 'Loslösen' : 'Nach oben' ?>
+                </button>
+              </form>
+              <form method="post" onsubmit="return confirm('Projekt und Bilder wirklich löschen?')">
+                <input type="hidden" name="token" value="<?= h(token()) ?>">
+                <input type="hidden" name="tat" value="loeschen">
+                <input type="hidden" name="bereich" value="projekt">
+                <input type="hidden" name="kennung" value="<?= h($p['slug'] ?? '') ?>">
+                <button class="stumm" type="submit">Löschen</button>
+              </form>
+            </span>
           </div>
         <?php endforeach; ?>
       </div>

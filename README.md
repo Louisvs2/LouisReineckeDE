@@ -241,3 +241,17 @@ Die hochgeladenen Bilder liegen sofort im Zielordner; der Eintrag in der
 JSON entsteht erst beim Veroeffentlichen. Bricht man vorher ab, bleiben
 verwaiste Bilder liegen — sie tauchen nirgends auf und werden beim naechsten
 Anlegen mit demselben Namen weitergezaehlt.
+
+### Projekte anpinnen
+
+Neben jedem Projekt steht „Nach oben". Ein angepinntes Projekt steht auf der
+Startseite vor allen anderen, unabhaengig vom Jahr, und ist im Backend mit
+einem Dreieck und orangem Knopf gekennzeichnet. „Loslösen" nimmt es zurueck.
+
+Mehrere Projekte lassen sich anpinnen; das zuletzt angepinnte steht vorn.
+Wird eines geloest, landet es am Ende seiner Jahresgruppe — innerhalb eines
+Jahres gibt es keine andere Ordnung als die Reihenfolge in der Datei.
+
+Die oeffentliche Seite braucht dafuer keine Aenderung: Sie zeigt die Projekte
+in der Reihenfolge, in der sie in der JSON stehen, und genau die schreibt das
+Backend beim Anpinnen um.
