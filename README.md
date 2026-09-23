@@ -222,3 +222,22 @@ Ob es gewirkt hat, zeigt im Backend der Abschnitt „Was der Server kann".
 Steht dort weiter „2M", greift keine der beiden Dateien; dann laedt man die
 Bilder in kleineren Portionen hoch oder stellt die Werte im Strato-Login
 unter PHP-Version ein.
+
+### Zweistufiger Bilderupload
+
+Die Bilder gehen nicht mehr gesammelt mit dem Formular raus, sondern eines
+nach dem anderen ueber eine kleine Schnittstelle in `admin.php`. Ein
+Fortschrittsbalken zeigt, welches Bild gerade laeuft; erst wenn alle durch
+sind, meldet die Zeile darunter „Alle N Bilder hochgeladen" und der Knopf
+zum Veroeffentlichen wird frei.
+
+Das loest drei Dinge zugleich: der Fortschritt ist sichtbar, die Groesse
+einer einzelnen Sendung bleibt unter jeder Hostergrenze, und ein
+misslungenes Bild reisst nicht den ganzen Vorgang mit. Zu grosse Dateien
+werden schon im Browser erkannt und mit Namen und Groesse genannt, statt
+in einen Upload zu laufen, den der Server verwirft.
+
+Die hochgeladenen Bilder liegen sofort im Zielordner; der Eintrag in der
+JSON entsteht erst beim Veroeffentlichen. Bricht man vorher ab, bleiben
+verwaiste Bilder liegen — sie tauchen nirgends auf und werden beim naechsten
+Anlegen mit demselben Namen weitergezaehlt.

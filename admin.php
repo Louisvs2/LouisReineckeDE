@@ -151,6 +151,19 @@ function schutz_sichern(string $ordner): void {
  * Stellt einen Upload-Ordner her. $schutz ist der Ordner, der die Schutzdatei
  * bekommt — bei media/<projekt> also media/, bei files/ eben files/ selbst.
  */
+/** Wandelt Angaben wie "8M" in Byte. */
+function byte_aus_ini(string $wert): int {
+    $wert = trim($wert);
+    if ($wert === '') return PHP_INT_MAX;
+    $zahl = (float)$wert;
+    return (int)match (strtolower(substr($wert, -1))) {
+        'g' => $zahl * 1024 * 1024 * 1024,
+        'm' => $zahl * 1024 * 1024,
+        'k' => $zahl * 1024,
+        default => $zahl,
+    };
+}
+
 /** Liefert das Speicherlimit in Byte, oder 0 wenn es unbegrenzt ist. */
 function speichergrenze(): int {
     $wert = trim((string)ini_get('memory_limit'));
@@ -166,6 +179,28 @@ function speichergrenze(): int {
 
 function byte_lesbar(string $wert): string {
     return $wert === '' ? 'nicht gesetzt' : $wert;
+}
+
+/**
+ * Nimmt die Bildpfade, die der Browser nach dem Einzelupload zurueckmeldet.
+ * Geprueft wird jeder Pfad gegen das erwartete Muster und gegen die Platte —
+ * so kann von aussen nichts Fremdes in die Liste geraten.
+ */
+function pfade_uebernehmen(string $feld, string $vorsatz): array {
+    $roh = (string)($_POST[$feld] ?? '');
+    if ($roh === '') return [];
+
+    $raus = [];
+    foreach (explode(',', $roh) as $pfad) {
+        $pfad = trim($pfad);
+        if ($pfad === '') continue;
+        if (!preg_match('~^' . preg_quote($vorsatz, '~') . '[A-Za-z0-9_-]+/\d{2,3}\.jpg$~', $pfad)) {
+            continue;
+        }
+        if (!is_file(WURZEL . '/' . $pfad)) continue;
+        $raus[] = $pfad;
+    }
+    return $raus;
 }
 
 function ordner_sichern(string $pfad, string $schutz): void {
@@ -340,6 +375,97 @@ if ($hash === null) {
     $ansicht = 'panel';
 }
 
+
+/* ---------------------------------------------------- Einzelbild-Schnittstelle
+
+   Die Bilder gehen nicht mehr gesammelt mit dem Formular raus, sondern eines
+   nach dem anderen ueber diese Schnittstelle. Das hat drei Vorteile: der
+   Fortschritt ist sichtbar, die Groesse einer Sendung bleibt klein genug fuer
+   jeden Hoster, und ein misslungenes Bild reisst nicht den ganzen Vorgang mit.
+*/
+
+function antwort(array $daten, int $code = 200): never {
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($daten, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($ansicht === 'panel' && ($_POST['tat'] ?? '') === 'api-vorbereiten') {
+    try {
+        token_pruefen();
+        $ziel = (string)($_POST['ziel'] ?? '');
+        $name = trim((string)($_POST['name'] ?? ''));
+        if ($name === '') throw new RuntimeException('Erst einen Namen eintragen.');
+
+        if ($ziel === 'galerie') {
+            // Bestehende Galerie weiterfuellen oder eine neue beginnen.
+            $kennung = trim((string)($_POST['kennung'] ?? ''));
+            if (!preg_match('/^[a-f0-9]{16,64}$/', $kennung)) {
+                $kennung = bin2hex(random_bytes(16));
+            }
+            $ordner = WURZEL . '/kunden/' . $kennung;
+            ordner_sichern($ordner, WURZEL . '/kunden');
+        } elseif ($ziel === 'ort') {
+            $kennung = slug($name);
+            $ordner = WURZEL . '/locations/' . $kennung;
+            ordner_sichern($ordner, WURZEL . '/locations');
+        } elseif ($ziel === 'projekt') {
+            $kennung = slug($name);
+            $ordner = WURZEL . '/media/' . $kennung;
+            ordner_sichern($ordner, WURZEL . '/media');
+        } else {
+            throw new RuntimeException('Unbekanntes Ziel.');
+        }
+
+        // Vorhandene Bilder zaehlen, damit die Nummerierung weiterlaeuft.
+        $schon = count(glob($ordner . '/*.jpg') ?: []);
+        antwort(['ok' => true, 'kennung' => $kennung, 'schon' => $schon]);
+    } catch (Throwable $e) {
+        antwort(['ok' => false, 'fehler' => $e->getMessage()], 400);
+    }
+}
+
+if ($ansicht === 'panel' && ($_POST['tat'] ?? '') === 'api-bild') {
+    try {
+        token_pruefen();
+        $ziel    = (string)($_POST['ziel'] ?? '');
+        $kennung = (string)($_POST['kennung'] ?? '');
+        $nr      = max(1, (int)($_POST['nr'] ?? 1));
+
+        $basis = match ($ziel) {
+            'galerie' => WURZEL . '/kunden/',
+            'ort'     => WURZEL . '/locations/',
+            'projekt' => WURZEL . '/media/',
+            default   => throw new RuntimeException('Unbekanntes Ziel.'),
+        };
+        $vorsatz = match ($ziel) {
+            'galerie' => 'kunden/',
+            'ort'     => 'locations/',
+            'projekt' => 'media/',
+        };
+
+        // Die Kennung darf nie in den Pfad durchschlagen.
+        if ($ziel === 'galerie') {
+            if (!preg_match('/^[a-f0-9]{16,64}$/', $kennung)) throw new RuntimeException('Ungültige Kennung.');
+        } else {
+            if ($kennung !== slug($kennung)) throw new RuntimeException('Ungültige Kennung.');
+        }
+
+        $ordner = $basis . $kennung;
+        if (!is_dir($ordner)) throw new RuntimeException('Der Ordner fehlt. Bitte neu beginnen.');
+        if (empty($_FILES['bild'])) throw new RuntimeException('Es kam kein Bild an.');
+
+        $breit = $ziel === 'galerie' ? '%03d.jpg' : '%02d.jpg';
+        $datei = sprintf($breit, $nr);
+        bild_speichern($_FILES['bild'], $ordner . '/' . $datei);
+
+        antwort(['ok' => true, 'pfad' => $vorsatz . $kennung . '/' . $datei]);
+    } catch (Throwable $e) {
+        antwort(['ok' => false, 'fehler' => $e->getMessage()], 400);
+    }
+}
+
 /* ---------------------------------------------------------- Verarbeitung */
 
 if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -366,23 +492,14 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($titel === '') throw new RuntimeException('Ein Titel wird gebraucht.');
             $s = slug($titel);
 
-            $bilder = dateien_liste('bilder');
             $ordner = WURZEL . '/media/' . $s;
             ordner_sichern($ordner, WURZEL . '/media');
 
             $vorhanden = array_values(array_filter($d['projects'], fn($p) => ($p['slug'] ?? '') === $s));
-            $pfade = $vorhanden ? ($vorhanden[0]['images'] ?? []) : [];
-
-            if ($bilder) {
-                ordner_leeren($ordner);
-                $pfade = [];
-                $n = 1;
-                foreach ($bilder as $b) {
-                    $name = sprintf('%02d.jpg', $n);
-                    bild_speichern($b, $ordner . '/' . $name);
-                    $pfade[] = "media/$s/$name";
-                    $n++;
-                }
+            $pfade = pfade_uebernehmen('pfade', 'media/');
+            if (!$pfade) {
+                // Ohne neue Bilder bleiben die bisherigen stehen.
+                $pfade = $vorhanden ? ($vorhanden[0]['images'] ?? []) : [];
             }
 
             $video = trim((string)($_POST['video'] ?? ''));
@@ -423,19 +540,9 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ordner_sichern($ordner, WURZEL . '/locations');
 
             $vorhanden = array_values(array_filter($d['locations'], fn($o) => ($o['slug'] ?? '') === $s));
-            $pfade = $vorhanden ? ($vorhanden[0]['images'] ?? []) : [];
-
-            $bilder = dateien_liste('bilder');
-            if ($bilder) {
-                ordner_leeren($ordner);
-                $pfade = [];
-                $n = 1;
-                foreach ($bilder as $b) {
-                    $dn = sprintf('%02d.jpg', $n);
-                    bild_speichern($b, $ordner . '/' . $dn);
-                    $pfade[] = "locations/$s/$dn";
-                    $n++;
-                }
+            $pfade = pfade_uebernehmen('pfade', 'locations/');
+            if (!$pfade) {
+                $pfade = $vorhanden ? ($vorhanden[0]['images'] ?? []) : [];
             }
 
             $d['locations'] = array_values(array_filter($d['locations'], fn($o) => ($o['slug'] ?? '') !== $s));
@@ -488,34 +595,31 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $galerien = galerien_lesen();
             $schluessel = trim((string)($_POST['schluessel'] ?? ''));
 
+            $stelle = null;
+            $pfade = [];
+
             if ($schluessel !== '' && preg_match('/^[a-f0-9]{16,64}$/', $schluessel)) {
-                $stelle = null;
                 foreach ($galerien as $i => $g) {
                     if (($g['key'] ?? '') === $schluessel) { $stelle = $i; break; }
                 }
-                if ($stelle === null) throw new RuntimeException('Diese Galerie gibt es nicht mehr.');
-                $pfade = $galerien[$stelle]['images'] ?? [];
+                /* Steht der Schluessel noch nicht in der Liste, kommt er aus dem
+                   vorangegangenen Bildupload — dann wird die Galerie jetzt mit
+                   genau diesem Schluessel angelegt. Sonst gingen die schon
+                   hochgeladenen Bilder verloren. */
+                if ($stelle !== null) {
+                    $pfade = $galerien[$stelle]['images'] ?? [];
+                }
             } else {
                 $schluessel = bin2hex(random_bytes(16));
-                $stelle = null;
-                $pfade = [];
             }
 
             $ordner = WURZEL . '/kunden/' . $schluessel;
             ordner_sichern($ordner, WURZEL . '/kunden');
 
-            $bilder = dateien_liste('bilder');
-            if ($bilder) {
-                // Angehaengt statt ersetzt: so lassen sich grosse Auftraege in
-                // mehreren Durchgaengen hochladen.
-                $n = count($pfade);
-                foreach ($bilder as $b) {
-                    $n++;
-                    $name = sprintf('%03d.jpg', $n);
-                    bild_speichern($b, $ordner . '/' . $name);
-                    $pfade[] = "kunden/$schluessel/$name";
-                }
-            }
+            /* Nach dem Einzelupload liegen alle Bilder schon im Ordner; hier
+               wird nur noch uebernommen, was tatsaechlich dort angekommen ist. */
+            $gemeldet = pfade_uebernehmen('pfade', 'kunden/');
+            if ($gemeldet) $pfade = $gemeldet;
 
             $eintrag = [
                 'key'      => $schluessel,
@@ -647,6 +751,25 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
   .alsKnopf:hover { background:var(--ink); color:var(--paper); }
   .alsKnopf input { display:none; }
   .nachlegen { display:inline; }
+  .hochladen { border-top:1px solid #e3e3e3; padding-top:14px; margin-top:4px; }
+  .tastenreihe { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .tastenreihe button[disabled] { opacity:.35; cursor:not-allowed; }
+  .tastenreihe button[disabled]:hover { background:var(--akzent); }
+  .tastenreihe button[data-start] { background:var(--ink); }
+  .tastenreihe button[data-start]:hover:not([disabled]) { background:var(--akzent); }
+
+  .fortschritt { margin:0 0 14px; }
+  .balken { height:3px; background:#e3e3e3; overflow:hidden; }
+  .balken span { display:block; height:100%; width:0; background:var(--akzent);
+                 transition:width .18s linear; }
+  .stand { margin:7px 0 0; font-size:12px; font-weight:500; letter-spacing:.02em;
+           color:var(--grau); font-variant-numeric:tabular-nums; }
+  .stand.fertig { color:var(--akzent); font-weight:700; }
+  .stand.schief { color:var(--ink); }
+
+  .ohnebild { margin:12px 0 0; font-size:12px; color:var(--grau); }
+  .ohnebild button { margin-left:4px; }
+
   .fuss { padding:26px 20px 50px; color:var(--grau); font-size:12.5px; max-width:70ch; }
 </style>
 </head>
@@ -704,9 +827,22 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
       <label><span>Videolink, falls vorhanden</span><input type="text" name="video" placeholder="youtube.com/watch?v=…"></label>
       <label><span>Ein Satz für den Seitenkopf</span><input type="text" name="kurz"></label>
       <label><span>Beschreibung</span><textarea name="text"></textarea></label>
-      <label><span>Bilder — mehrere auswählbar, Reihenfolge wie ausgewählt</span>
-        <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple></label>
-      <button type="submit">Projekt speichern</button>
+      <div class="hochladen" data-hochladen data-ziel="projekt" data-namensfeld="titel">
+        <label><span>Bilder — mehrere auswählbar, Reihenfolge wie ausgewählt</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-auswahl></label>
+        <input type="hidden" name="pfade" data-pfade value="">
+        <div class="fortschritt" data-anzeige hidden>
+          <div class="balken"><span data-balken></span></div>
+          <p class="stand" data-stand></p>
+        </div>
+        <div class="tastenreihe">
+          <button type="button" data-start disabled>Bilder hochladen</button>
+          <button type="submit" data-freigabe disabled>Veröffentlichen</button>
+        </div>
+        <p class="ohnebild">Ohne neue Bilder lässt sich direkt veröffentlichen — die
+           bisherigen bleiben dann erhalten.
+           <button type="submit" class="stumm" formnovalidate="false">Nur Texte speichern</button></p>
+      </div>
     </form>
 
     <?php if ($daten['projects']): ?>
@@ -732,9 +868,21 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
       <input type="hidden" name="tat" value="ort">
       <label><span>Name</span><input type="text" name="name" required></label>
       <label><span>Adresse</span><input type="text" name="adresse" placeholder="Augsburger Straße, 10789 Berlin"></label>
-      <label><span>Bilder</span>
-        <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple></label>
-      <button type="submit">Ort speichern</button>
+      <div class="hochladen" data-hochladen data-ziel="ort" data-namensfeld="name">
+        <label><span>Bilder</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-auswahl></label>
+        <input type="hidden" name="pfade" data-pfade value="">
+        <div class="fortschritt" data-anzeige hidden>
+          <div class="balken"><span data-balken></span></div>
+          <p class="stand" data-stand></p>
+        </div>
+        <div class="tastenreihe">
+          <button type="button" data-start disabled>Bilder hochladen</button>
+          <button type="submit" data-freigabe disabled>Veröffentlichen</button>
+        </div>
+        <p class="ohnebild">Ohne neue Bilder bleiben die bisherigen erhalten.
+           <button type="submit" class="stumm">Nur Angaben speichern</button></p>
+      </div>
     </form>
 
     <?php if ($daten['locations']): ?>
@@ -773,9 +921,19 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
       <label><span>Kunde</span><input type="text" name="kunde"></label>
       <label><span>Link zu den Originaldateien — WeTransfer oder ähnlich</span>
         <input type="text" name="transfer" placeholder="https://we.tl/…"></label>
-      <label><span>Vorschaubilder — mehrere auswählbar</span>
-        <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple></label>
-      <button type="submit">Galerie anlegen</button>
+      <div class="hochladen" data-hochladen data-ziel="galerie" data-namensfeld="titel">
+        <label><span>Vorschaubilder — mehrere auswählbar</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-auswahl></label>
+        <input type="hidden" name="pfade" data-pfade value="">
+        <div class="fortschritt" data-anzeige hidden>
+          <div class="balken"><span data-balken></span></div>
+          <p class="stand" data-stand></p>
+        </div>
+        <div class="tastenreihe">
+          <button type="button" data-start disabled>Bilder hochladen</button>
+          <button type="submit" data-freigabe disabled>Galerie veröffentlichen</button>
+        </div>
+      </div>
     </form>
 
     <?php if ($galerien): ?>
@@ -879,6 +1037,134 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
       ersetzt den Eintrag; lädst du dabei keine Bilder hoch, bleiben die bisherigen erhalten.
       HEIC vom iPhone kann der Server nicht lesen — in der Fotos-App als JPEG exportieren.</p>
   </div>
+
+<script>
+/* Bilder gehen einzeln raus. Erst wenn alle durch sind, wird der
+   Veröffentlichen-Knopf frei — so kann kein halb gefüllter Eintrag entstehen. */
+(() => {
+  const TOKEN = <?= json_encode(token()) ?>;
+  // Die Grenze des Servers, damit zu grosse Bilder gar nicht erst losgeschickt
+  // werden — ein verworfener Upload liefert keine verwertbare Antwort.
+  const MAX_BYTE = <?= (int)min(
+      speichergrenze() > 0 ? speichergrenze() : PHP_INT_MAX,
+      byte_aus_ini((string)ini_get('upload_max_filesize')),
+      byte_aus_ini((string)ini_get('post_max_size')) - 512 * 1024
+  ) ?>;
+  const MAX_TEXT = <?= json_encode(byte_lesbar((string)ini_get('upload_max_filesize'))) ?>;
+
+  document.querySelectorAll('[data-hochladen]').forEach((kasten) => {
+    const ziel       = kasten.dataset.ziel;
+    const namensfeld = kasten.dataset.namensfeld;
+    const formular   = kasten.closest('form');
+    const auswahl    = kasten.querySelector('[data-auswahl]');
+    const pfadeFeld  = kasten.querySelector('[data-pfade]');
+    const anzeige    = kasten.querySelector('[data-anzeige]');
+    const balken     = kasten.querySelector('[data-balken]');
+    const stand      = kasten.querySelector('[data-stand]');
+    const start      = kasten.querySelector('[data-start]');
+    const freigabe   = kasten.querySelector('[data-freigabe]');
+
+    let laeuft = false;
+
+    const nameHolen = () => (formular.querySelector(`[name="${namensfeld}"]`)?.value || '').trim();
+
+    const pruefen = () => {
+      const bereit = auswahl.files.length > 0 && nameHolen() !== '' && !laeuft;
+      start.disabled = !bereit;
+    };
+
+    auswahl.addEventListener('change', () => {
+      pfadeFeld.value = '';
+      freigabe.disabled = true;
+      anzeige.hidden = true;
+      stand.className = 'stand';
+      pruefen();
+    });
+    formular.querySelector(`[name="${namensfeld}"]`)?.addEventListener('input', pruefen);
+
+    const senden = async (daten) => {
+      const antwort = await fetch(location.pathname, { method: 'POST', body: daten });
+      let ergebnis;
+      try {
+        ergebnis = await antwort.json();
+      } catch {
+        throw new Error('Der Server hat unerwartet geantwortet. Vermutlich ist das Bild zu groß.');
+      }
+      if (!ergebnis.ok) throw new Error(ergebnis.fehler || 'Unbekannter Fehler.');
+      return ergebnis;
+    };
+
+    start.addEventListener('click', async () => {
+      const dateien = Array.from(auswahl.files);
+      if (!dateien.length) return;
+
+      const zuGross = dateien.filter((d) => MAX_BYTE > 0 && d.size > MAX_BYTE);
+      if (zuGross.length) {
+        anzeige.hidden = false;
+        stand.className = 'stand schief';
+        const mb = (b) => Math.round(b / 1048576);
+        stand.textContent = zuGross.length === 1
+          ? `${zuGross[0].name} ist ${mb(zuGross[0].size)} MB gross — der Server nimmt hoechstens ${MAX_TEXT} je Bild. Exportiere die Vorschau kleiner.`
+          : `${zuGross.length} Bilder sind groesser als ${MAX_TEXT} und wurden nicht gesendet: ${zuGross.slice(0, 3).map(d => d.name).join(', ')}${zuGross.length > 3 ? ' und weitere' : ''}.`;
+        return;
+      }
+
+      laeuft = true;
+      start.disabled = true;
+      freigabe.disabled = true;
+      anzeige.hidden = false;
+      stand.className = 'stand';
+      balken.style.width = '0%';
+
+      try {
+        // Ziel anlegen und erfahren, bei welcher Nummer weitergezählt wird.
+        const vor = new FormData();
+        vor.append('token', TOKEN);
+        vor.append('tat', 'api-vorbereiten');
+        vor.append('ziel', ziel);
+        vor.append('name', nameHolen());
+        const bestehend = formular.querySelector('[name="schluessel"]');
+        if (bestehend) vor.append('kennung', bestehend.value || '');
+
+        const { kennung, schon } = await senden(vor);
+        if (bestehend && !bestehend.value) bestehend.value = kennung;
+
+        const pfade = [];
+        for (let i = 0; i < dateien.length; i++) {
+          stand.textContent = `Lade Bild ${i + 1} von ${dateien.length} — ${dateien[i].name}`;
+
+          const daten = new FormData();
+          daten.append('token', TOKEN);
+          daten.append('tat', 'api-bild');
+          daten.append('ziel', ziel);
+          daten.append('kennung', kennung);
+          daten.append('nr', String(schon + i + 1));
+          daten.append('bild', dateien[i]);
+
+          const { pfad } = await senden(daten);
+          pfade.push(pfad);
+          balken.style.width = Math.round(((i + 1) / dateien.length) * 100) + '%';
+        }
+
+        pfadeFeld.value = pfade.join(',');
+        stand.className = 'stand fertig';
+        stand.textContent = `Alle ${pfade.length} Bilder hochgeladen — jetzt veröffentlichen.`;
+        freigabe.disabled = false;
+        freigabe.focus();
+      } catch (fehler) {
+        stand.className = 'stand schief';
+        stand.textContent = 'Abgebrochen: ' + fehler.message;
+        freigabe.disabled = true;
+      } finally {
+        laeuft = false;
+        pruefen();
+      }
+    });
+
+    pruefen();
+  });
+})();
+</script>
 <?php endif; ?>
 
 </body>
