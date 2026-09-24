@@ -197,9 +197,12 @@ Link zu den Originaldateien und die Vorschaubilder. Daraus entsteht eine
 Adresse der Form `galerie.php?k=<32 Hexzeichen>`, die nirgends verlinkt und
 fuer Suchmaschinen gesperrt ist.
 
-Der Kunde sieht die Vorschauen auf schwarzem Grund, auf Ringen im Raum
-angeordnet; beim Scrollen faehrt er durch die Ringe hindurch. Ein Klick
-oeffnet die Grossansicht mit Pfeilen und Escape. Der Knopf am unteren Rand
+Der Kunde sieht die Vorschauen auf weissem Grund als Rad: alle Bilder sitzen
+auf einem Kreis, Scrollen dreht ihn. Das Bild an der Spitze wird gross und
+deckend, die uebrigen fallen ueber eine Glockenkurve zurueck — sie richtet
+sich nach dem Winkelabstand, nicht nach dem Kosinus, weil bei vielen Bildern
+sonst auch die Nachbarn fast gleich gross erscheinen. Ein Klick oeffnet die
+Grossansicht mit Pfeilen und Escape, die Eingabetaste oeffnet das obere Bild. Der Knopf am unteren Rand
 fuehrt ueber `galerie.php?k=…&dl=1` zum Uebertragungslink — die Adresse
 steht dadurch nirgends im Quelltext und der Kunde sieht sie nicht.
 

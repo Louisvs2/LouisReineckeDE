@@ -64,13 +64,12 @@ $bilder = $galerie['images'] ?? [];
 <title><?= h($titel) ?> — Louis Reinecke</title>
 <style>
   :root {
-    --grund: #0d0d0f;
-    --schrift: #ffffff;
-    --leise: #8d8d92;
+    --grund: #ffffff;
+    --schrift: #000000;
+    --leise: #8a8a8a;
     --akzent: #ff3b00;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: auto; }
   body {
     margin: 0;
     background: var(--grund);
@@ -89,58 +88,52 @@ $bilder = $galerie['images'] ?? [];
     position: fixed; inset: 0 0 auto 0; z-index: 30;
     display: flex; align-items: baseline; justify-content: space-between;
     gap: 16px; padding: 18px 22px;
+    background: linear-gradient(var(--grund) 60%, rgba(255,255,255,0));
     pointer-events: none;
   }
   .kopf h1 {
     margin: 0; font-size: 15px; font-weight: 700;
     text-transform: uppercase; letter-spacing: -0.01em;
   }
-  .kopf span { font-size: 11px; font-weight: 500; letter-spacing: .08em;
-               text-transform: uppercase; color: var(--leise); }
-
-  /* ---------- Die Bühne ---------- */
-
-  /* Der Körper wird künstlich hoch gemacht; die Scrollhöhe steuert, wie weit
-     die Kamera durch die Ringe fährt. */
-  .strecke { height: 100vh; }
-
-  .buehne {
-    position: fixed; inset: 0; z-index: 10;
-    perspective: 900px;
-    overflow: hidden;
+  .kopf span {
+    font-size: 11px; font-weight: 500; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--leise);
   }
 
-  .raum {
-    position: absolute; inset: 0;
-    transform-style: preserve-3d;
-    will-change: transform;
-    /* Die Ebene selbst liegt vor den nach hinten versetzten Bildern und
-       wuerde sonst alle Klicks abfangen. */
-    pointer-events: none;
+  /* ---------- Das Rad ----------
+
+     Alle Bilder sitzen auf einem Kreis. Beim Scrollen dreht sich der Kreis;
+     welches Bild oben steht, wird gross und deckend, die uebrigen treten
+     zurueck. Die Scrollhoehe legt fest, wie weit sich das Rad dreht. */
+
+  .strecke { height: 100vh; }
+
+  .rad {
+    position: fixed; inset: 0; z-index: 10;
+    overflow: hidden;
   }
 
   .foto {
-    position: absolute; top: 50%; left: 50%;
-    width: 200px; margin: -70px 0 0 -100px;
-    border-radius: 12px;
+    position: absolute; top: 0; left: 0;
+    width: var(--breite, 230px);
+    margin: 0;
+    border-radius: 3px;
     overflow: hidden;
-    transform-style: preserve-3d;
+    background: #f0efee;
     cursor: pointer;
-    pointer-events: auto;
-    background: #1a1a1e;
-    box-shadow: 0 18px 50px rgba(0,0,0,.55);
+    will-change: transform, opacity;
+    box-shadow: 0 10px 34px rgba(0,0,0,.14);
   }
   .foto img {
-    display: block; width: 100%; height: 140px;
+    display: block; width: 100%; aspect-ratio: 3 / 2;
     object-fit: cover;
-    /* Bilder sollen sich nicht bequem einzeln wegziehen lassen. */
     -webkit-user-drag: none; user-select: none; pointer-events: none;
   }
 
-  /* ---------- Hinweis zum Scrollen ---------- */
+  /* ---------- Hinweis und Zähler ---------- */
 
   .wink {
-    position: fixed; left: 50%; bottom: 92px; z-index: 25;
+    position: fixed; left: 50%; bottom: 96px; z-index: 25;
     transform: translateX(-50%);
     font-size: 11px; font-weight: 500; letter-spacing: .1em;
     text-transform: uppercase; color: var(--leise);
@@ -149,41 +142,47 @@ $bilder = $galerie['images'] ?? [];
   }
   .wink.weg { opacity: 0; }
 
+  .zaehler {
+    position: fixed; right: 22px; bottom: 30px; z-index: 25;
+    font-size: 11px; font-weight: 500; letter-spacing: .08em;
+    color: var(--leise); font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
   /* ---------- Download ---------- */
 
   .holen {
     position: fixed; left: 50%; bottom: 26px; z-index: 30;
     transform: translateX(-50%);
-    display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 26px;
+    display: inline-flex; align-items: center;
+    padding: 14px 28px;
     background: var(--akzent); color: #fff;
     font: inherit; font-weight: 700; font-size: 13px;
     text-transform: uppercase; letter-spacing: .06em;
-    text-decoration: none; border: 0; border-radius: 999px;
+    text-decoration: none; border: 0; border-radius: 0;
     cursor: pointer;
-    transition: transform .12s ease-out;
   }
-  .holen:hover { transform: translateX(-50%) scale(1.04); }
-  .holen:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .holen:hover { background: var(--schrift); }
+  .holen:focus-visible { outline: 3px solid var(--akzent); outline-offset: 3px; }
 
   /* ---------- Vollbild ---------- */
 
   .voll {
     position: fixed; inset: 0; z-index: 60;
     display: none; place-items: center;
-    background: #08080a;
+    background: var(--grund);
     padding: 64px 22px;
   }
   .voll.an { display: grid; }
   .voll img {
     max-width: 100%; max-height: calc(100vh - 128px);
-    object-fit: contain; border-radius: 6px;
+    object-fit: contain;
     -webkit-user-drag: none; user-select: none;
   }
   .voll__zu, .voll__vor, .voll__zurueck {
     position: absolute; background: none; border: 0; cursor: pointer;
-    color: #fff; font: inherit; font-size: 26px; line-height: 1;
-    padding: 14px 18px; opacity: .65;
+    color: var(--schrift); font: inherit; font-size: 26px; line-height: 1;
+    padding: 14px 18px; opacity: .55;
   }
   .voll__zu:hover, .voll__vor:hover, .voll__zurueck:hover { opacity: 1; }
   .voll__zu { top: 10px; right: 12px; }
@@ -195,12 +194,8 @@ $bilder = $galerie['images'] ?? [];
     font-variant-numeric: tabular-nums;
   }
 
-  .leer { display: grid; place-items: center; height: 100vh; text-align: center; }
+  .leer { display: grid; place-items: center; height: 100vh; text-align: center; padding: 22px; }
   .leer p { color: var(--leise); max-width: 40ch; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .holen { transition: none; }
-  }
 </style>
 </head>
 <body>
@@ -222,12 +217,11 @@ $bilder = $galerie['images'] ?? [];
     <span><?= count($bilder) ?> Aufnahmen<?= !empty($galerie['client']) ? ' · ' . h($galerie['client']) : '' ?></span>
   </header>
 
-  <div class="buehne" id="buehne">
-    <div class="raum" id="raum"></div>
-  </div>
+  <div class="rad" id="rad"></div>
   <div class="strecke" id="strecke"></div>
 
-  <p class="wink" id="wink">Scrollen</p>
+  <p class="wink" id="wink">Scrollen zum Drehen</p>
+  <p class="zaehler" id="zaehler"></p>
 
   <?php if (!empty($galerie['transfer'])): ?>
     <a class="holen" href="galerie.php?k=<?= h($schluessel) ?>&amp;dl=1" target="_blank" rel="noopener">
@@ -247,73 +241,85 @@ $bilder = $galerie['images'] ?? [];
 (() => {
   const BILDER = <?= json_encode(array_values($bilder), JSON_UNESCAPED_SLASHES) ?>;
 
-  const raum    = document.getElementById('raum');
+  const rad     = document.getElementById('rad');
   const strecke = document.getElementById('strecke');
   const wink    = document.getElementById('wink');
+  const zaehler = document.getElementById('zaehler');
 
-  /* Die Bilder sitzen auf mehreren Ringen, die hintereinander im Raum stehen.
-     Beim Scrollen fährt die Kamera durch die Ringe hindurch: erst sieht man
-     einen Ring als Ganzes, dann ist man mittendrin und die Bilder ziehen
-     seitlich vorbei. */
-  const PRO_RING  = 12;
-  const ABSTAND   = 620;    // Tiefe zwischen zwei Ringen
-  const RADIUS    = 300;    // Grundradius eines Rings
-  const ringe     = Math.max(1, Math.ceil(BILDER.length / PRO_RING));
-
-  // Aus dem Index abgeleitete Streuung: bei jedem Aufruf gleich, nie geordnet.
-  const streu = (i, n) => {
-    const x = Math.sin(i * 12.9898 + n * 78.233) * 43758.5453;
-    return x - Math.floor(x);
-  };
+  /* Ein voller Umlauf verteilt sich auf die Scrollstrecke, sodass jedes Bild
+     einmal oben zu stehen kommt. Etwas Nachlauf am Ende, damit das letzte
+     Bild nicht schon beim Anschlag vorbeigezogen ist. */
+  strecke.style.height = ((BILDER.length * 0.6) + 1.2) * 100 + 'vh';
 
   const karten = BILDER.map((src, i) => {
-    const ring   = Math.floor(i / PRO_RING);
-    const platz  = i % PRO_RING;
-    const anzahl = Math.min(PRO_RING, BILDER.length - ring * PRO_RING);
-
-    // Jeder Ring startet etwas verdreht, damit keine Speichen entstehen.
-    const winkel = (platz / anzahl) * 360 + ring * 17;
-    const radius = RADIUS * (0.82 + streu(i, 1) * 0.42);
-    const tiefe  = -ring * ABSTAND - streu(i, 2) * 160;
-    const groesse = 0.72 + streu(i, 3) * 0.7;
-
     const el = document.createElement('figure');
     el.className = 'foto';
-    el.style.margin = 0;
     el.dataset.nr = String(i);
 
     const img = document.createElement('img');
     img.src = src;
     img.alt = '';
-    img.loading = i < PRO_RING * 2 ? 'eager' : 'lazy';
+    img.loading = i < 6 ? 'eager' : 'lazy';
     el.appendChild(img);
-    raum.appendChild(el);
-
-    return { el, winkel, radius, tiefe, groesse };
+    rad.appendChild(el);
+    return el;
   });
 
-  // Scrollweg: pro Ring eine Bildschirmhöhe, plus etwas Vor- und Nachlauf.
-  strecke.style.height = ((ringe + 1.4) * 100) + 'vh';
+  // Masse des Rads an die Fenstergroesse anpassen.
+  let mitteX = 0, mitteY = 0, radius = 0, breite = 0;
+
+  const masse = () => {
+    const b = window.innerWidth, h = window.innerHeight;
+    breite = Math.max(150, Math.min(300, b * 0.24));
+    // Der Mittelpunkt liegt unter dem Bildausschnitt, damit oben Platz für
+    // das grosse Bild bleibt und die Kreisbahn nur als Bogen sichtbar ist.
+    radius = Math.max(260, Math.min(b, h) * 0.62);
+    mitteX = b / 2;
+    mitteY = h * 0.52 + radius * 0.72;
+    karten.forEach((el) => el.style.setProperty('--breite', breite + 'px'));
+  };
+
+  let obenNr = 0;
 
   const setzen = () => {
     const maximum = strecke.offsetHeight - window.innerHeight;
     const anteil  = maximum > 0 ? Math.min(1, Math.max(0, window.scrollY / maximum)) : 0;
+    const drehung = anteil * 360;
 
-    // Kamera startet vor dem ersten Ring und endet hinter dem letzten.
-    const kamera = -ABSTAND * 0.75 + anteil * (ringe * ABSTAND + ABSTAND * 1.5);
-    const drehung = anteil * 46;
+    let bestNaehe = -1;
+    let bestNr = 0;
 
-    for (const k of karten) {
-      const w = k.winkel + drehung;
-      k.el.style.transform =
-        `translate3d(-50%, -50%, 0)` +
-        `translateZ(${(k.tiefe + kamera).toFixed(1)}px)` +
-        `rotate(${w.toFixed(2)}deg)` +
-        `translate(${k.radius.toFixed(1)}px)` +
-        `rotate(${(-w).toFixed(2)}deg)` +
-        `scale(${k.groesse.toFixed(3)})`;
-    }
+    karten.forEach((el, i) => {
+      // Winkel 0 heisst: dieses Bild steht oben.
+      const grad = (i / karten.length) * 360 - drehung;
+      const bogen = grad * Math.PI / 180;
 
+      const x = mitteX + Math.sin(bogen) * radius;
+      const y = mitteY - Math.cos(bogen) * radius;
+
+      /* Der Winkelabstand zur Spitze entscheidet, nicht der Kosinus: bei
+         vielen Bildern liegen die Nachbarn sonst so dicht, dass sie fast
+         gleich gross erscheinen und sich gegenseitig verdecken. Die
+         Glockenkurve laesst nur die Spitze gross und die Nachbarn zuegig
+         zurueckfallen. */
+      // Kuerzester Weg zur Spitze, also 0 bis 180 Grad.
+      const roh = ((grad % 360) + 360) % 360;
+      const abstand = Math.min(roh, 360 - roh);
+      const naehe = Math.exp(-Math.pow(abstand / 26, 2));
+      const groesse = 0.42 + naehe * 1.25;
+
+      el.style.transform =
+        `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)` +
+        `translate(-50%, -50%)` +
+        `scale(${groesse.toFixed(3)})`;
+      el.style.opacity = (0.22 + naehe * 0.78).toFixed(3);
+      el.style.zIndex = String(Math.round(naehe * 100));
+
+      if (naehe > bestNaehe) { bestNaehe = naehe; bestNr = i; }
+    });
+
+    obenNr = bestNr;
+    zaehler.textContent = (bestNr + 1) + ' / ' + BILDER.length;
     wink.classList.toggle('weg', window.scrollY > 40);
   };
 
@@ -325,14 +331,15 @@ $bilder = $galerie['images'] ?? [];
   };
 
   window.addEventListener('scroll', beiScroll, { passive: true });
-  window.addEventListener('resize', setzen);
+  window.addEventListener('resize', () => { masse(); setzen(); });
+  masse();
   setzen();
 
   /* ---------- Großansicht ---------- */
 
-  const voll      = document.getElementById('voll');
-  const vollBild  = document.getElementById('vollBild');
-  const vollZahl  = document.getElementById('vollZahl');
+  const voll     = document.getElementById('voll');
+  const vollBild = document.getElementById('vollBild');
+  const vollZahl = document.getElementById('vollZahl');
   let aktuell = 0;
 
   const zeigen = (nr) => {
@@ -349,7 +356,7 @@ $bilder = $galerie['images'] ?? [];
     document.body.style.overflow = '';
   };
 
-  raum.addEventListener('click', (e) => {
+  rad.addEventListener('click', (e) => {
     const karte = e.target.closest('.foto');
     if (karte) zeigen(Number(karte.dataset.nr));
   });
@@ -360,10 +367,14 @@ $bilder = $galerie['images'] ?? [];
   voll.addEventListener('click', (e) => { if (e.target === voll) schliessen(); });
 
   document.addEventListener('keydown', (e) => {
-    if (!voll.classList.contains('an')) return;
-    if (e.key === 'Escape') schliessen();
-    if (e.key === 'ArrowRight') zeigen(aktuell + 1);
-    if (e.key === 'ArrowLeft') zeigen(aktuell - 1);
+    if (voll.classList.contains('an')) {
+      if (e.key === 'Escape') schliessen();
+      if (e.key === 'ArrowRight') zeigen(aktuell + 1);
+      if (e.key === 'ArrowLeft') zeigen(aktuell - 1);
+      return;
+    }
+    // Ohne Grossansicht öffnet die Eingabetaste das obere Bild.
+    if (e.key === 'Enter') zeigen(obenNr);
   });
 })();
 </script>
