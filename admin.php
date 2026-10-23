@@ -177,6 +177,36 @@ function projekte_ordnen(array $projekte): array {
     return array_merge($oben, $rest);
 }
 
+/**
+ * Benennt einen Eintrag um. Aendert sich dabei der Kurzname, muss der
+ * Bildordner mitwandern und jeder gespeicherte Pfad angepasst werden —
+ * sonst zeigen die Bilder ins Leere.
+ *
+ * Gibt den neuen Kurznamen und die angepassten Pfade zurueck.
+ */
+function umbenennen(string $alt, string $neu, string $basis, array $pfade): array {
+    if ($alt === $neu) return [$neu, $pfade];
+
+    $von = WURZEL . '/' . $basis . '/' . $alt;
+    $nach = WURZEL . '/' . $basis . '/' . $neu;
+
+    if (is_dir($nach)) {
+        throw new RuntimeException(
+            'Unter diesem Namen gibt es schon einen Eintrag. Waehle einen anderen Titel.'
+        );
+    }
+    if (is_dir($von) && !rename($von, $nach)) {
+        throw new RuntimeException('Der Bildordner liess sich nicht umbenennen.');
+    }
+
+    $neuePfade = array_map(
+        fn($pf) => preg_replace('~^' . preg_quote($basis . '/' . $alt . '/', '~') . '~',
+                                $basis . '/' . $neu . '/', $pf),
+        $pfade
+    );
+    return [$neu, $neuePfade];
+}
+
 /** Liefert das Speicherlimit in Byte, oder 0 wenn es unbegrenzt ist. */
 function speichergrenze(): int {
     $wert = trim((string)ini_get('memory_limit'));
@@ -693,6 +723,98 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $d['projects'] = projekte_ordnen($d['projects']);
             daten_schreiben($d);
 
+        } elseif ($tat === 'projekt-bearbeiten') {
+            $kennung = (string)($_POST['kennung'] ?? '');
+            $stelle = null;
+            foreach ($d['projects'] as $i => $pr) {
+                if (($pr['slug'] ?? '') === $kennung) { $stelle = $i; break; }
+            }
+            if ($stelle === null) throw new RuntimeException('Dieses Projekt gibt es nicht.');
+
+            $titel = trim((string)($_POST['titel'] ?? ''));
+            if ($titel === '') throw new RuntimeException('Ein Titel wird gebraucht.');
+
+            $eintrag = $d['projects'][$stelle];
+            [$neuerSlug, $pfade] = umbenennen(
+                (string)$eintrag['slug'], slug($titel), 'media', $eintrag['images'] ?? []
+            );
+
+            $video = trim((string)($_POST['video'] ?? ''));
+            if ($video !== '' && preg_match('~(?:v=|youtu\.be/|/embed/|/shorts/)([A-Za-z0-9_-]{6,})~', $video, $m)) {
+                $video = 'https://www.youtube.com/embed/' . $m[1];
+            } elseif ($video !== '' && preg_match('~vimeo\.com/(?:video/)?(\d+)~', $video, $m)) {
+                $video = 'https://player.vimeo.com/video/' . $m[1];
+            }
+
+            $ort = trim((string)($_POST['ort'] ?? ''));
+            $eintrag['slug']    = $neuerSlug;
+            $eintrag['title']   = $titel;
+            $eintrag['client']  = trim((string)($_POST['kunde'] ?? ''));
+            $eintrag['year']    = trim((string)($_POST['jahr'] ?? ''));
+            $eintrag['tags']    = $ort !== '' ? [$ort] : [];
+            $eintrag['excerpt'] = trim((string)($_POST['kurz'] ?? ''));
+            $eintrag['text']    = trim((string)($_POST['text'] ?? ''));
+            $eintrag['video']   = $video;
+            $eintrag['type']    = $video !== '' ? 'Video' : 'Fotografie';
+            $eintrag['images']  = $pfade;
+            $eintrag['cover']   = $pfade[0] ?? '';
+
+            $d['projects'][$stelle] = $eintrag;
+            $d['projects'] = projekte_ordnen($d['projects']);
+            daten_schreiben($d);
+            $erfolg = 'Projekt gespeichert: ' . $titel . '.';
+
+        } elseif ($tat === 'ort-bearbeiten') {
+            $kennung = (string)($_POST['kennung'] ?? '');
+            $stelle = null;
+            foreach ($d['locations'] as $i => $o) {
+                if (($o['slug'] ?? '') === $kennung) { $stelle = $i; break; }
+            }
+            if ($stelle === null) throw new RuntimeException('Diesen Ort gibt es nicht.');
+
+            $name = trim((string)($_POST['name'] ?? ''));
+            if ($name === '') throw new RuntimeException('Ein Name wird gebraucht.');
+
+            $eintrag = $d['locations'][$stelle];
+            [$neuerSlug, $pfade] = umbenennen(
+                (string)$eintrag['slug'], slug($name), 'locations', $eintrag['images'] ?? []
+            );
+
+            $eintrag['slug']    = $neuerSlug;
+            $eintrag['name']    = $name;
+            $eintrag['address'] = trim((string)($_POST['adresse'] ?? ''));
+            $eintrag['images']  = $pfade;
+
+            $d['locations'][$stelle] = $eintrag;
+            daten_schreiben($d);
+            $erfolg = 'Ort gespeichert: ' . $name . '.';
+
+        } elseif ($tat === 'galerie-bearbeiten') {
+            $schluessel = (string)($_POST['schluessel'] ?? '');
+            if (!preg_match('/^[a-f0-9]{16,64}$/', $schluessel)) {
+                throw new RuntimeException('Ungültiger Schlüssel.');
+            }
+            $galerien = galerien_lesen();
+            $stelle = null;
+            foreach ($galerien as $i => $g) {
+                if (($g['key'] ?? '') === $schluessel) { $stelle = $i; break; }
+            }
+            if ($stelle === null) throw new RuntimeException('Diese Galerie gibt es nicht.');
+
+            $titel = trim((string)($_POST['titel'] ?? ''));
+            if ($titel === '') throw new RuntimeException('Ein Titel wird gebraucht.');
+            $transfer = trim((string)($_POST['transfer'] ?? ''));
+            if ($transfer !== '' && !preg_match('~^https://~i', $transfer)) {
+                throw new RuntimeException('Der Übertragungslink muss mit https:// beginnen.');
+            }
+
+            // Der Schluessel bleibt, damit ein verschickter Link gueltig bleibt.
+            $galerien[$stelle]['title']    = $titel;
+            $galerien[$stelle]['client']   = trim((string)($_POST['kunde'] ?? ''));
+            $galerien[$stelle]['transfer'] = $transfer;
+            galerien_schreiben($galerien);
+            $erfolg = 'Galerie gespeichert: ' . $titel . '.';
+
         } elseif ($tat === 'loeschen') {
             $bereich = (string)($_POST['bereich'] ?? '');
             $kennung = (string)($_POST['kennung'] ?? '');
@@ -795,6 +917,10 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
   .alsKnopf:hover { background:var(--ink); color:var(--paper); }
   .alsKnopf input { display:none; }
   .nachlegen { display:inline; }
+  .klappe { padding:16px 0 20px; border-bottom:1px solid #e3e3e3; }
+  .klappe label { margin-bottom:12px; }
+  .merke { margin:0 0 14px; font-size:12px; color:var(--grau); }
+
   .zeile--oben { background:#fdf4f1; }
   .nadel { font-style:normal; color:var(--akzent); font-size:10px; margin-right:4px; }
   .stumm--an { background:var(--akzent); color:var(--paper); border-color:var(--akzent); }
@@ -904,6 +1030,7 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
               <em><?= h($p['year'] ?? '') ?> · <?= count($p['images'] ?? []) ?> Bilder</em>
             </span>
             <span class="tasten">
+              <button class="stumm" type="button" data-klappe="pr-<?= h($p['slug'] ?? '') ?>">Bearbeiten</button>
               <form method="post">
                 <input type="hidden" name="token" value="<?= h(token()) ?>">
                 <input type="hidden" name="tat" value="pinnen">
@@ -921,6 +1048,30 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
               </form>
             </span>
           </div>
+          <form method="post" class="klappe" id="pr-<?= h($p['slug'] ?? '') ?>" hidden>
+            <input type="hidden" name="token" value="<?= h(token()) ?>">
+            <input type="hidden" name="tat" value="projekt-bearbeiten">
+            <input type="hidden" name="kennung" value="<?= h($p['slug'] ?? '') ?>">
+            <label><span>Titel</span>
+              <input type="text" name="titel" value="<?= h($p['title'] ?? '') ?>" required></label>
+            <div class="paar">
+              <label><span>Kunde</span>
+                <input type="text" name="kunde" value="<?= h($p['client'] ?? '') ?>"></label>
+              <label><span>Jahr</span>
+                <input type="text" name="jahr" value="<?= h($p['year'] ?? '') ?>"></label>
+              <label><span>Ort</span>
+                <input type="text" name="ort" value="<?= h(($p['tags'][0] ?? '')) ?>"></label>
+            </div>
+            <label><span>Videolink</span>
+              <input type="text" name="video" value="<?= h($p['video'] ?? '') ?>"></label>
+            <label><span>Ein Satz für den Seitenkopf</span>
+              <input type="text" name="kurz" value="<?= h($p['excerpt'] ?? '') ?>"></label>
+            <label><span>Beschreibung</span>
+              <textarea name="text"><?= h($p['text'] ?? '') ?></textarea></label>
+            <p class="merke">Wird der Titel geändert, wandert der Bildordner mit —
+               die <?= count($p['images'] ?? []) ?> Bilder bleiben erhalten.</p>
+            <button type="submit">Änderungen speichern</button>
+          </form>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
@@ -953,14 +1104,28 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
         <?php foreach ($daten['locations'] as $o): ?>
           <div class="zeile">
             <span><b><?= h($o['name'] ?? '') ?></b> <em><?= h($o['address'] ?? '') ?> · <?= count($o['images'] ?? []) ?> Bilder</em></span>
-            <form method="post" onsubmit="return confirm('Ort und Bilder wirklich löschen?')">
-              <input type="hidden" name="token" value="<?= h(token()) ?>">
-              <input type="hidden" name="tat" value="loeschen">
-              <input type="hidden" name="bereich" value="ort">
-              <input type="hidden" name="kennung" value="<?= h($o['slug'] ?? '') ?>">
-              <button class="stumm" type="submit">Löschen</button>
-            </form>
+            <span class="tasten">
+              <button class="stumm" type="button" data-klappe="or-<?= h($o['slug'] ?? '') ?>">Bearbeiten</button>
+              <form method="post" onsubmit="return confirm('Ort und Bilder wirklich löschen?')">
+                <input type="hidden" name="token" value="<?= h(token()) ?>">
+                <input type="hidden" name="tat" value="loeschen">
+                <input type="hidden" name="bereich" value="ort">
+                <input type="hidden" name="kennung" value="<?= h($o['slug'] ?? '') ?>">
+                <button class="stumm" type="submit">Löschen</button>
+              </form>
+            </span>
           </div>
+          <form method="post" class="klappe" id="or-<?= h($o['slug'] ?? '') ?>" hidden>
+            <input type="hidden" name="token" value="<?= h(token()) ?>">
+            <input type="hidden" name="tat" value="ort-bearbeiten">
+            <input type="hidden" name="kennung" value="<?= h($o['slug'] ?? '') ?>">
+            <label><span>Name</span>
+              <input type="text" name="name" value="<?= h($o['name'] ?? '') ?>" required></label>
+            <label><span>Adresse</span>
+              <input type="text" name="adresse" value="<?= h($o['address'] ?? '') ?>"></label>
+            <p class="merke">Wird der Name geändert, wandert der Bildordner mit.</p>
+            <button type="submit">Änderungen speichern</button>
+          </form>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
@@ -1023,6 +1188,7 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
                   <input type="file" name="bilder[]" accept="image/jpeg,image/png,image/webp" multiple
                          onchange="this.form.submit()"></label>
               </form>
+              <button class="stumm" type="button" data-klappe="ga-<?= h($g['key'] ?? '') ?>">Bearbeiten</button>
               <form method="post" onsubmit="return confirm('Galerie und alle Bilder wirklich löschen?')">
                 <input type="hidden" name="token" value="<?= h(token()) ?>">
                 <input type="hidden" name="tat" value="galerie-weg">
@@ -1031,6 +1197,19 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
               </form>
             </span>
           </div>
+          <form method="post" class="klappe" id="ga-<?= h($g['key'] ?? '') ?>" hidden>
+            <input type="hidden" name="token" value="<?= h(token()) ?>">
+            <input type="hidden" name="tat" value="galerie-bearbeiten">
+            <input type="hidden" name="schluessel" value="<?= h($g['key'] ?? '') ?>">
+            <label><span>Titel, den der Kunde sieht</span>
+              <input type="text" name="titel" value="<?= h($g['title'] ?? '') ?>" required></label>
+            <label><span>Kunde</span>
+              <input type="text" name="kunde" value="<?= h($g['client'] ?? '') ?>"></label>
+            <label><span>Link zu den Originaldateien</span>
+              <input type="text" name="transfer" value="<?= h($g['transfer'] ?? '') ?>"></label>
+            <p class="merke">Der Link für den Kunden bleibt derselbe.</p>
+            <button type="submit">Änderungen speichern</button>
+          </form>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
@@ -1227,6 +1406,21 @@ $galerien = $ansicht === 'panel' ? galerien_lesen() : [];
     pruefen();
   });
 })();
+</script>
+
+<script>
+/* Bearbeiten-Formulare bleiben eingeklappt, damit die Liste uebersichtlich
+   bleibt; der Knopf zeigt, welcher Zustand gerade gilt. */
+document.querySelectorAll('[data-klappe]').forEach((knopf) => {
+  knopf.addEventListener('click', () => {
+    const ziel = document.getElementById(knopf.dataset.klappe);
+    if (!ziel) return;
+    ziel.hidden = !ziel.hidden;
+    knopf.textContent = ziel.hidden ? 'Bearbeiten' : 'Zuklappen';
+    knopf.classList.toggle('stumm--an', !ziel.hidden);
+    if (!ziel.hidden) ziel.querySelector('input[type=text]')?.focus();
+  });
+});
 </script>
 <?php endif; ?>
 

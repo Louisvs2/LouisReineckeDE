@@ -258,3 +258,17 @@ Jahres gibt es keine andere Ordnung als die Reihenfolge in der Datei.
 Die oeffentliche Seite braucht dafuer keine Aenderung: Sie zeigt die Projekte
 in der Reihenfolge, in der sie in der JSON stehen, und genau die schreibt das
 Backend beim Anpinnen um.
+
+### Eintraege bearbeiten
+
+Neben jedem Projekt, Ort und jeder Galerie steht „Bearbeiten". Das klappt ein
+Formular mit den vorhandenen Angaben auf — Titel, Kunde, Jahr, Ort, Videolink
+und Texte.
+
+Aendert sich dabei der Titel, aendert sich auch der Kurzname, und damit der
+Bildordner: er wird mit umbenannt und jeder gespeicherte Pfad angepasst, damit
+die Bilder nicht ins Leere zeigen. Traegt der neue Name auf einen bestehenden
+Eintrag, bricht der Vorgang mit einem Hinweis ab und nichts wird veraendert.
+
+Bei Kundengalerien bleibt der Schluessel unberuehrt — ein bereits verschickter
+Link gilt also weiter, auch wenn Titel oder Kunde geaendert werden.
