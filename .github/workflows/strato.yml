@@ -1,0 +1,57 @@
+name: Auf Strato veroeffentlichen
+
+# Laedt die Programmdateien per FTP auf den Webspace. Inhalte bleiben
+# unberuehrt: data/, media/, locations/, kunden/ und files/ werden bewusst
+# ausgelassen, weil sie ueber admin.php auf dem Server entstehen und ein
+# Upload aus dem Repository sie ueberschreiben wuerde.
+
+on:
+  push:
+    branches:
+      - claude/louis-reinecke-portfolio-108jj2
+  workflow_dispatch:        # erlaubt das Starten von Hand
+
+jobs:
+  hochladen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stand holen
+        uses: actions/checkout@v4
+
+      # Ohne hinterlegte Zugangsdaten soll der Lauf still enden statt mit
+      # einer Fehlermeldung — sonst kaeme nach jedem Push eine Mail.
+      - name: Zugangsdaten vorhanden?
+        id: pruefung
+        run: |
+          if [ -n "${{ secrets.FTP_SERVER }}" ] && [ -n "${{ secrets.FTP_BENUTZER }}" ] && [ -n "${{ secrets.FTP_PASSWORT }}" ]; then
+            echo "bereit=ja" >> "$GITHUB_OUTPUT"
+          else
+            echo "bereit=nein" >> "$GITHUB_OUTPUT"
+            echo "Keine FTP-Zugangsdaten hinterlegt — es wird nichts uebertragen."
+            echo "Anzulegen unter Settings, Secrets and variables, Actions:"
+            echo "  FTP_SERVER, FTP_BENUTZER, FTP_PASSWORT"
+          fi
+
+      - name: Per FTP uebertragen
+        if: steps.pruefung.outputs.bereit == 'ja'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_BENUTZER }}
+          password: ${{ secrets.FTP_PASSWORT }}
+          protocol: ftps
+          server-dir: ./
+          # Nur anfassen, was wirklich aus dem Repository kommt.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            data/**
+            media/**
+            locations/**
+            kunden/**
+            files/**
+            tools/**
+            README.md
+            admin-config.php
+            vercel.json

@@ -272,3 +272,30 @@ Eintrag, bricht der Vorgang mit einem Hinweis ab und nichts wird veraendert.
 
 Bei Kundengalerien bleibt der Schluessel unberuehrt — ein bereits verschickter
 Link gilt also weiter, auch wenn Titel oder Kunde geaendert werden.
+
+## Automatisch auf Strato veroeffentlichen
+
+`.github/workflows/strato.yml` laedt bei jedem Push die Programmdateien per
+FTPS auf den Webspace. Einmal einzurichten:
+
+Auf GitHub unter **Settings → Secrets and variables → Actions → New
+repository secret** drei Eintraege anlegen:
+
+| Name          | Wert                              |
+|---------------|-----------------------------------|
+| `FTP_SERVER`  | der FTP-Server aus dem Strato-Login |
+| `FTP_BENUTZER`| der FTP-Benutzername              |
+| `FTP_PASSWORT`| das FTP-Passwort                  |
+
+Solange die drei fehlen, laeuft der Vorgang durch, uebertraegt aber nichts
+und meldet keinen Fehler.
+
+**Was uebertragen wird:** die HTML-Dateien, `css/`, `js/`, `admin.php`,
+`galerie.php`, `php.ini` und `.user.ini`.
+
+**Was nie angefasst wird:** `data/`, `media/`, `locations/`, `kunden/` und
+`files/`. Diese Inhalte entstehen ueber admin.php auf dem Server; ein Upload
+aus dem Repository wuerde sie ueberschreiben.
+
+Hinweis: Fuer FTPS braucht es den FTP-Zugang aus dem Strato-Login, nicht den
+SFTP-Zugang. Beide stehen unter Datenbanken und Webspace.
