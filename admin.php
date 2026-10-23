@@ -184,17 +184,35 @@ function projekte_ordnen(array $projekte): array {
  *
  * Gibt den neuen Kurznamen und die angepassten Pfade zurueck.
  */
-function umbenennen(string $alt, string $neu, string $basis, array $pfade): array {
+function umbenennen(string $alt, string $neu, string $basis, array $pfade,
+                   array $belegt = []): array {
     if ($alt === $neu) return [$neu, $pfade];
+
+    // Entscheidend ist, ob ein anderer Eintrag diesen Namen fuehrt — nicht,
+    // ob zufaellig ein Ordner so heisst.
+    if (in_array($neu, $belegt, true)) {
+        throw new RuntimeException(
+            'Unter diesem Namen gibt es schon einen Eintrag. Waehle einen anderen Titel.'
+        );
+    }
 
     $von = WURZEL . '/' . $basis . '/' . $alt;
     $nach = WURZEL . '/' . $basis . '/' . $neu;
 
     if (is_dir($nach)) {
-        throw new RuntimeException(
-            'Unter diesem Namen gibt es schon einen Eintrag. Waehle einen anderen Titel.'
-        );
+        // Ein leerer Ordner ist ein Ueberbleibsel, etwa von einem
+        // abgebrochenen Bilderupload, und darf dem Umbenennen nicht im Weg
+        // stehen. Enthaelt er Bilder, wird nichts angefasst.
+        if (glob($nach . '/*.jpg')) {
+            throw new RuntimeException(
+                'Im Ordner ' . $basis . '/' . $neu . ' liegen bereits Bilder. '
+                . 'Waehle einen anderen Titel oder raeume den Ordner auf.'
+            );
+        }
+        @unlink($nach . '/.gitkeep');
+        @rmdir($nach);
     }
+
     if (is_dir($von) && !rename($von, $nach)) {
         throw new RuntimeException('Der Bildordner liess sich nicht umbenennen.');
     }
@@ -735,8 +753,11 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($titel === '') throw new RuntimeException('Ein Titel wird gebraucht.');
 
             $eintrag = $d['projects'][$stelle];
+            $andere = array_map(fn($x) => (string)($x['slug'] ?? ''),
+                array_filter($d['projects'], fn($x) => ($x['slug'] ?? '') !== $eintrag['slug']));
             [$neuerSlug, $pfade] = umbenennen(
-                (string)$eintrag['slug'], slug($titel), 'media', $eintrag['images'] ?? []
+                (string)$eintrag['slug'], slug($titel), 'media', $eintrag['images'] ?? [],
+                array_values($andere)
             );
 
             $video = trim((string)($_POST['video'] ?? ''));
@@ -776,8 +797,11 @@ if ($ansicht === 'panel' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($name === '') throw new RuntimeException('Ein Name wird gebraucht.');
 
             $eintrag = $d['locations'][$stelle];
+            $andere = array_map(fn($x) => (string)($x['slug'] ?? ''),
+                array_filter($d['locations'], fn($x) => ($x['slug'] ?? '') !== $eintrag['slug']));
             [$neuerSlug, $pfade] = umbenennen(
-                (string)$eintrag['slug'], slug($name), 'locations', $eintrag['images'] ?? []
+                (string)$eintrag['slug'], slug($name), 'locations', $eintrag['images'] ?? [],
+                array_values($andere)
             );
 
             $eintrag['slug']    = $neuerSlug;
